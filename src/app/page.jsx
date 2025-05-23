@@ -1,5 +1,5 @@
 import { Home } from "@/components/Home";
-import { getHomePageData } from "@/services";
+import { fetchHomePageData } from "@/services";
 
 
 export async function generateMetadata() {
@@ -14,7 +14,7 @@ export async function generateMetadata() {
 }
 
 export default async function Page() {
-  const data = await getHomePageData();
+  const data = await fetchHomePageData();
   return (
     <Home data={data} />
   );

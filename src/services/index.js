@@ -23,7 +23,7 @@ export const joinWaitList = async (payload) => {
   }
 };
 
-export const getHomePageData = async () => {
+export const fetchHomePageData = async () => {
   try {
     const response = await queryCollection({
       dataCollectionId: "EijentHome",
@@ -36,5 +36,21 @@ export const getHomePageData = async () => {
     return response.items[0];
   } catch (error) {
     logError(`Error fetching home page data: ${error.message}`, error);
+  }
+};
+
+export const fetchHeaderData = async () => {
+  try {
+    const response = await queryCollection({
+      dataCollectionId: "EijentHeader",
+    });
+
+    if (!Array.isArray(response.items)) {
+      throw new Error(`Response does not contain items : items property is ${typeof response.items}`);
+    }
+
+    return response.items[0];
+  } catch (error) {
+    logError(`Error fetching header data: ${error.message}`, error);
   }
 };

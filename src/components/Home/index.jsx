@@ -1,15 +1,20 @@
 "use client";
 
+import { useEffect } from "react";
 import { Features } from "./Features";
 import { HeroSection } from "./HeroSection";
 import { WaitlistBanner } from "./WaitlistBanner";
+import { loadContainer } from "@/utils/AnimationsHandler";
 
 export const Home = ({ data }) => {
 
+  useEffect(() => {
+    loadContainer();
+  }, []);
+
   return (
     <>
-      {/* <h1 style={{ fontFamily: 'cursive', fontSize: "9.5rem", textAlign: "center", color: "#5578fa" }}>{data.headline}</h1> */}
-      <HeroSection />
+      <HeroSection data={data} />
       <Features />
       <WaitlistBanner />
     </>

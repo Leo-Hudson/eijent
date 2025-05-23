@@ -1,6 +1,10 @@
 import React from 'react'
 
-export const HeroSection = () => {
+export const HeroSection = ({ data }) => {
+    console.log("data", data);
+
+    const { headline, description, ctaButtonLabel } = data;
+
     return (
         <div className="wrapper-sticky">
             <div className="gradient-spacer">
@@ -31,17 +35,12 @@ export const HeroSection = () => {
                     <div className="row">
                         <div className="col-md-8 col-landscape-10 offset-md-2 offset-landscape-1 column-1 white-1">
                             <div className="wrapper-text">
-                                <h1 className="fs--80 text-center">The AI-Powered Sidekick for Every Sales &
-                                    Marketing Team</h1>
+                                <h1 className="fs--80 text-center">{headline}</h1>
                                 <p className="fs--21 text-center">
-                                    Stop juggling tools. Eijent unifies all your sales and marketing efforts
-                                    with cutting-edge AI,
-                                    keeping you one step ahead so you can sell smarter, move faster, and focus
-                                    on what really
-                                    matters.
+                                    {description}
                                 </p>
                                 <button data-scrollto="#footer" className="btn-1">
-                                    <span>Join the Waitlist Now</span>
+                                    <span>{ctaButtonLabel}</span>
                                 </button>
                             </div>
                             <div className="wrapper-img">
@@ -87,7 +86,7 @@ export const HeroSection = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <btn-modal-open group="modal-video" className="content-img no-desktop">
+                                <btn-modal-open group="modal-video" class="content-img no-desktop">
                                     <div className="blur-mask"></div>
                                     <div className="chat-message">
                                         <i className="icon-close"></i>

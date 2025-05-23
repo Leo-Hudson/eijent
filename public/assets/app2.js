@@ -14603,6 +14603,41 @@ var require_app2 = __commonJS({
       scrollTo();
       Parallax();
       sticky();
+
+
+      ScrollToGsap(0, 0, 0);
+      let loaderExists = document.querySelector("#loader");
+      let loaderTimeout = 1e3;
+      let leaveTimeout = 600;
+      if (!loaderExists) {
+        loaderTimeout = 0;
+        leaveTimeout = 0;
+      }
+      if (typeof loader !== "undefined") {
+        let smoother = ScrollSmoother.get();
+        if (smoother) smoother.paused(true);
+        loader.onFirstLeaving = () => {
+          observers();
+          ScrollToGsap(0, 0, 0);
+          setTimeout(() => {
+            updateWatched();
+          }, leaveTimeout);
+          document.dispatchEvent(new CustomEvent("loaded"));
+          ScrollTrigger$1.refresh();
+        };
+        loader.onFirstDone = () => {
+          setTimeout(() => {
+            document.body.classList.remove("overflow-hidden");
+            document.body.classList.remove("loader-logo-transition");
+            let smoother2 = ScrollSmoother.get();
+            if (smoother2) smoother2.paused(false);
+            ScrollTrigger$1.refresh();
+          }, 3100);
+        };
+        setTimeout(() => {
+          loader.state.scriptReady = true;
+        }, loaderTimeout);
+      }
     }
     function whenContainerLeave() {
       document.body.classList.add("page-leave-active");
@@ -14616,42 +14651,21 @@ var require_app2 = __commonJS({
     smoothScrollGsap();
     CookiesConsent();
     pages();
-    whenContainerReady();
-    document.addEventListener("pjax:complete", whenContainerReady);
-    document.addEventListener("pjax:send", whenContainerLeave);
-    ScrollToGsap(0, 0, 0);
-    let loaderExists = document.querySelector("#loader");
-    let loaderTimeout = 1e3;
-    let leaveTimeout = 600;
-    if (!loaderExists) {
-      loaderTimeout = 0;
-      leaveTimeout = 0;
-    }
-    if (typeof loader !== "undefined") {
-      let smoother = ScrollSmoother.get();
-      if (smoother) smoother.paused(true);
-      loader.onFirstLeaving = () => {
-        observers();
-        ScrollToGsap(0, 0, 0);
-        setTimeout(() => {
-          updateWatched();
-        }, leaveTimeout);
-        document.dispatchEvent(new CustomEvent("loaded"));
-        ScrollTrigger$1.refresh();
-      };
-      loader.onFirstDone = () => {
-        setTimeout(() => {
-          document.body.classList.remove("overflow-hidden");
-          document.body.classList.remove("loader-logo-transition");
-          let smoother2 = ScrollSmoother.get();
-          if (smoother2) smoother2.paused(false);
-          ScrollTrigger$1.refresh();
-        }, 3100);
-      };
-      setTimeout(() => {
-        loader.state.scriptReady = true;
-      }, loaderTimeout);
-    }
+    // whenContainerReady();
+
+    const customEventHandler = document.getElementById("customEventHandler");
+
+    customEventHandler.addEventListener("customUpdateWatch", () => {
+      updateWatched();
+    });
+
+    customEventHandler.addEventListener("loadContainer", () => {
+      whenContainerReady();
+    });
+
+    // document.addEventListener("pjax:complete", whenContainerReady);
+    // document.addEventListener("pjax:send", whenContainerLeave);
+
   }
 });
 export default require_app2();

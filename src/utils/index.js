@@ -1,4 +1,4 @@
-import { ApiKeyStrategy, createClient } from "@wix/sdk";
+import { ApiKeyStrategy, createClient, OAuthStrategy } from "@wix/sdk";
 import { collections, items } from "@wix/data";
 import { submissions } from "@wix/forms";
 
@@ -20,6 +20,22 @@ export const createWixClient = async () => {
                 siteId: process.env.CLIENT_SITE_ID_WIX,
                 apiKey: process.env.CLIENT_API_KEY_WIX,
             })
+        });
+        return wixClient;
+    } catch (error) {
+        logError("Error creating wix client: ", error);
+    }
+};
+
+export const createWixClientOAuth = async () => {
+    try {
+        const wixClient = createClient({
+            modules: {
+                collections,
+                items,
+                submissions,
+            },
+            auth: OAuthStrategy({ clientId: process.env.CLIENT_ID_WIX }),
         });
         return wixClient;
     } catch (error) {

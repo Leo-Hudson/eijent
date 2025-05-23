@@ -1,203 +1,81 @@
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
-import { Toaster, toast } from 'sonner';
-import { joinWaitList } from '@/services';
-import { logError } from '@/utils';
-
-const schema = yup.object({
-    company: yup.string().required('Company is required'),
-    role: yup.string().required('Role is required'),
-    first_name: yup.string().required('First name is required'),
-    last_name: yup.string().required('Last name is required'),
-    email: yup.string().email('Email is invalid').required('Email is required'),
-}).required();
+import React from 'react'
 
 export const Footer = () => {
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const { register, handleSubmit, formState: { errors }, reset } = useForm({
-        resolver: yupResolver(schema)
-    });
-
-    const onSubmit = async (data) => {
-        setIsSubmitting(true);
-        try {
-            const response = await joinWaitList(data);
-            console.log("response", response);
-
-            toast.success('Successfully added to waitlist!');
-            setTimeout(() => {
-                reset();
-                setIsSubmitting(false);
-            }, 2e2);
-        } catch (error) {
-            logError("Error:", error);
-            toast.error('Failed to join waitlist. Please try again.');
-            setIsSubmitting(false);
-        }
-    };
-
     return (
-        <div className="form-container">
-            <h2>Join Our Waitlist</h2>
-            <form onSubmit={handleSubmit(onSubmit)}>
-                <div className="form-group">
-                    <label>Company:</label>
-                    <input
-                        type="text"
-                        disabled={isSubmitting}
-                        placeholder="Your company"
-                        {...register("company")}
-                    />
-                    {errors.company && <span className="error">{errors.company.message}</span>}
-                </div>
-
-                <div className="form-group">
-                    <label>Role:</label>
-                    <input
-                        type="text"
-                        disabled={isSubmitting}
-                        placeholder="Your role"
-                        {...register("role")}
-                    />
-                    {errors.role && <span className="error">{errors.role.message}</span>}
-                </div>
-
-                <div className="name-fields">
-                    <div className="form-group">
-                        <label>First Name:</label>
-                        <input
-                            type="text"
-                            disabled={isSubmitting}
-                            placeholder="First name"
-                            {...register("first_name")}
-                        />
-                        {errors.first_name && <span className="error">{errors.first_name.message}</span>}
+        <footer id="footer">
+            <div class="container-fluid">
+                <div class="row row-1">
+                    <div class="col-lg-6 col-landscape-8 column-1 mx-auto">
+                        <h2 class="fs--60 fs-mobile-36 white-1 text-center">Sign up and get ahead</h2>
+                        <div class="container-sign-up" data-form-container>
+                            <form class="form-sign-up">
+                                <input type="hidden" name="assunto" value="[Sign Up]" />
+                                    <div class="container-input col-lg-6">
+                                        <label for="sign-up-company">Company</label>
+                                        <input id="sign-up-company" name="company" type="text" required />
+                                    </div>
+                                    <div class="container-input col-lg-6">
+                                        <label for="sign-up-role">Role</label>
+                                        <input id="sign-up-role" name="role" type="text" required />
+                                    </div>
+                                    <div class="container-input col-lg-6">
+                                        <label for="sign-up-first-name">First name</label>
+                                        <input id="sign-up-first-name" name="first_name" type="text" required />
+                                    </div>
+                                    <div class="container-input col-lg-6">
+                                        <label for="sign-up-last-name">Last name</label>
+                                        <input id="sign-up-last-name" name="last_name" type="text" required />
+                                    </div>
+                                    <div class="container-input col-lg-6">
+                                        <label for="sign-up-email">E-mail</label>
+                                        <input id="sign-up-email" name="email" type="email" required />
+                                    </div>
+                                    <div class="container-submit col-lg-6">
+                                        <button type="submit" class="bt-submit">
+                                            <span class="submit-text">Send</span>
+                                        </button>
+                                    </div>
+                            </form>
+                            <h3 class="feedback-sign-up d-none" data-aos="fadeIn"></h3>
+                        </div>
+                        <ul class="list-social-media">
+                            <li>
+                                <a href="#" class="link-social-media" target="_blank" rel="noopener noreferrer">
+                                    <i class="icon-facebook"></i>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="link-social-media" target="_blank" rel="noopener noreferrer">
+                                    <i class="icon-instagram"></i>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="link-social-media" target="_blank" rel="noopener noreferrer">
+                                    <i class="icon-twitter"></i>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="link-social-media" target="_blank" rel="noopener noreferrer">
+                                    <i class="icon-linkedin"></i>
+                                </a>
+                            </li>
+                        </ul>
                     </div>
-
-                    <div className="form-group">
-                        <label>Last Name:</label>
-                        <input
-                            type="text"
-                            disabled={isSubmitting}
-                            placeholder="Last name"
-                            {...register("last_name")}
-                        />
-                        {errors.last_name && <span className="error">{errors.last_name.message}</span>}
+                </div>
+                <div class="row row-2">
+                    <div class="col-lg-12 column-1">
+                        <a href="" class="link-blueprint">
+                            <span>Powered by</span>
+                            <i class="icon-logo-blueprint"></i>
+                        </a>
+                        <p class="fs--12 white-1">
+                            © Eijent. ALL RIGHTS RESERVED. - If it’s not remarkable, it’s invisible is a trademark
+                            of Blueprint
+                            Studios.
+                        </p>
                     </div>
                 </div>
-
-                <div className="form-group">
-                    <label>Email:</label>
-                    <input
-                        type="email"
-                        disabled={isSubmitting}
-                        placeholder="your.email@example.com"
-                        {...register("email")}
-                    />
-                    {errors.email && <span className="error">{errors.email.message}</span>}
-                </div>
-
-                <button
-                    type="submit"
-                    disabled={isSubmitting}
-                >
-                    {isSubmitting ? 'Submitting...' : 'Join Waitlist'}
-                </button>
-            </form>
-
-            <style jsx>{`
-                .form-container {
-                    max-width: 500px;
-                    margin: 0 auto;
-                    padding: 20px;
-                    background: white;
-                    border-radius: 8px;
-                    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-                    border: 1px solid #eaeaea;
-                }
-                
-                h2 {
-                    text-align: center;
-                    margin-bottom: 20px;
-                    font-size: 1.5rem;
-                    font-weight: bold;
-                    color: #333;
-                }
-                
-                .form-group {
-                    margin-bottom: 15px;
-                }
-                
-                label {
-                    display: block;
-                    margin-bottom: 5px;
-                    font-size: 0.9rem;
-                    font-weight: 500;
-                }
-                
-                input {
-                    width: 100%;
-                    padding: 10px;
-                    border: 1px solid #ddd;
-                    border-radius: 4px;
-                    font-size: 1rem;
-                }
-                
-                input:focus {
-                    outline: none;
-                    border-color: #4a90e2;
-                    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
-                }
-                
-                input:disabled {
-                    background-color: #f5f5f5;
-                    cursor: not-allowed;
-                }
-                
-                .error {
-                    color: #e53e3e;
-                    font-size: 0.8rem;
-                    margin-top: 5px;
-                    display: block;
-                }
-                
-                button {
-                    width: 100%;
-                    padding: 12px;
-                    background-color: #4a90e2;
-                    color: white;
-                    border: none;
-                    border-radius: 4px;
-                    font-size: 1rem;
-                    font-weight: 500;
-                    cursor: pointer;
-                    margin-top: 10px;
-                    transition: background-color 0.2s;
-                }
-                
-                button:hover:not(:disabled) {
-                    background-color: #3a7bc8;
-                }
-                
-                button:disabled {
-                    background-color: #a0c0e8;
-                    cursor: not-allowed;
-                }
-                
-                .name-fields {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 15px;
-                }
-                
-                @media (max-width: 600px) {
-                    .name-fields {
-                        grid-template-columns: 1fr;
-                    }
-                }
-            `}</style>
-        </div>
-    );
-};
+            </div>
+        </footer>
+    )
+}

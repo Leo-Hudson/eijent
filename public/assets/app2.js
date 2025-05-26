@@ -9565,6 +9565,9 @@ var require_app2 = __commonJS({
     function timelineLogoAnimationDesktop() {
       let mm = gsapWithCSS$1.matchMedia();
       let animationLogo = document.querySelector(".animation-spacer .animation-wrapper-logo");
+
+      console.log("animationLogo", animationLogo);
+      
       gsapWithCSS$1.set(animationLogo, { clearProps: "transform,opacity" });
       mm.add(`${mediaSize.desktop}`, () => {
         let tl2 = gsapWithCSS$1.timeline({
@@ -14579,6 +14582,9 @@ var require_app2 = __commonJS({
     }
     gsapWithCSS$1.registerPlugin(ScrollSmoother);
     function whenContainerReady() {
+      pages();
+
+
       if (firstLoad) {
         firstLoad = false;
         if (typeof loader === "undefined") {
@@ -14638,6 +14644,11 @@ var require_app2 = __commonJS({
           loader.state.scriptReady = true;
         }, loaderTimeout);
       }
+
+
+      setTimeout(() => {
+        updateWatched();
+      }, 5000);
     }
     function whenContainerLeave() {
       document.body.classList.add("page-leave-active");
@@ -14650,7 +14661,6 @@ var require_app2 = __commonJS({
     viewportHeight();
     smoothScrollGsap();
     CookiesConsent();
-    pages();
     // whenContainerReady();
 
     const customEventHandler = document.getElementById("customEventHandler");

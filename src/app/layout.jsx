@@ -27,8 +27,7 @@ export default async function RootLayout({ children }) {
   return (
     <>
       <CustomScripts />
-      <html lang="en" data-scroll-direction="initial" data-load="first-loading" className="loader-logo-transition overflow-hidden"
-        data-pg="pg-home">
+      <html lang="en">
         <body data-scroll-direction="initial" data-load="first-loading" className="loader-logo-transition overflow-hidden"
           data-pg="pg-home">
           <link rel="stylesheet" href="/assets/utils.css" />

@@ -4,15 +4,15 @@ import { HeroSection } from "./HeroSection";
 import { WaitlistBanner } from "./WaitlistBanner";
 
 export const Home = ({ data }) => {
-  const { heroSectionData, stickyMessagesData, homePageData } = data;
+  const { heroSectionData, stickyMessagesData, featuresData, homePageData } = data;
 
   return (
     <>
-      {/* <ContainerLoader log={data} /> */}
-      <ContainerLoader />
+      {/* <ContainerLoader /> */}
+      <ContainerLoader log={data} />
       <HeroSection data={heroSectionData} pageData={homePageData} stickyMessagesData={stickyMessagesData} />
-      <Features />
-      <WaitlistBanner />
+      <Features data={featuresData} pageData={homePageData} />
+      <WaitlistBanner data={homePageData} />
     </>
   )
 }

@@ -37,21 +37,24 @@ export const fetchHomePageData = async () => {
     const [
       homePageData,
       heroSectionData,
-      stickyMessagesData
+      stickyMessagesData,
+      featuresData
     ] = await Promise.all([
       queryCollection({ dataCollectionId: "EijentHome" }),
       queryCollection({ dataCollectionId: "EijentHeroSection" }),
       queryCollection({ dataCollectionId: "StickyMessages", sortKey: "orderNumber" }),
+      queryCollection({ dataCollectionId: "EijentFeatures", sortKey: "orderNumber" }),
     ]);    
 
-    if (!homePageData.items[0] || !heroSectionData.items[0] || !Array.isArray(stickyMessagesData.items)) {
+    if (!homePageData.items[0] || !heroSectionData.items[0] || !Array.isArray(stickyMessagesData.items) || !Array.isArray(featuresData.items)) {
       throw new Error(`Response does not contain items array`);
     }
 
     const response = {
       homePageData: homePageData.items[0],
       heroSectionData: heroSectionData.items[0],
-      stickyMessagesData: stickyMessagesData.items
+      stickyMessagesData: stickyMessagesData.items,
+      featuresData: featuresData.items
     };
 
     return response;

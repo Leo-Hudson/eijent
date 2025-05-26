@@ -1,9 +1,10 @@
+import React from 'react';
 import { generateImageURL, generateVideoURL } from '@/utils/generateImageURL';
-import React from 'react'
+import parse from 'html-react-parser';
 
 export const HeroSection = ({ data = {}, pageData = {}, stickyMessagesData = [] }) => {
     const { headline, description, presentationPopupTitle, presentationPopupDescription, presentationPopupButtonLabel, presentationImage, presentationVideoUrl } = data;
-    const { logoAnimation, ctaButtonLabel, introSectionPrefix, introSectionTitle, introSectionTagline } = pageData;
+    const { logoAnimation, ctaButtonLabel, stickyMessagesTitle } = pageData;
 
     const logoURL = generateVideoURL(logoAnimation);
     const presentationImageURL = generateImageURL({ wix_url: presentationImage });
@@ -125,12 +126,11 @@ export const HeroSection = ({ data = {}, pageData = {}, stickyMessagesData = [] 
                     <div className="row">
                         <div className="col-12 column-1">
                             <div className="wrapper-column-sticky">
-                                <h3 className="fs--28 black-1 text-center" data-parallax
+                                <h3 className="strong-fw-600 fs--28 black-1 text-center" data-parallax
                                     data-trigger=".section-features .container-fluid" data-translate-y="-50rem"
                                     data-tablet-translate-y="-30rem" data-phone-translate-y="-20rem"
                                     data-end="bottom bottom">
-                                    <span className="d-block">{introSectionPrefix} <span className="fw-600">{introSectionTitle}</span></span>
-                                    <span className="d-block mt-tablet-5">{introSectionTagline}</span>
+                                    {parse(stickyMessagesTitle)}
                                 </h3>
                                 <div className="wrapper-lines" data-parallax
                                     data-trigger=".section-features .container-fluid" data-translate-y="-50rem"
@@ -139,7 +139,7 @@ export const HeroSection = ({ data = {}, pageData = {}, stickyMessagesData = [] 
                                     {stickyMessagesData.map((item, index) => {
                                         const { title } = item;
                                         return (
-                                            <div className={`container-line container-line-${index + 1}`}>
+                                            <div key={title} className={`container-line container-line-${index + 1}`}>
                                                 <div className="line">
                                                     <span className="text">{title}</span>
                                                 </div>

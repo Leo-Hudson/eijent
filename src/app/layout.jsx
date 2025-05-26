@@ -4,7 +4,7 @@ import { Header } from "@/components/Header";
 import { Toaster } from "sonner";
 import { CustomScripts } from "@/components/CustomScripts";
 import "plyr/dist/plyr.css";
-import { fetchHeaderData, fetchLayoutData } from "@/services";
+import { fetchLayoutData } from "@/services";
 
 export const metadata = {
   title: "Eijent",

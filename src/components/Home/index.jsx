@@ -1,20 +1,16 @@
-"use client";
-
-import { useEffect } from "react";
+import { ContainerLoader } from "../ContainerLoader";
 import { Features } from "./Features";
 import { HeroSection } from "./HeroSection";
 import { WaitlistBanner } from "./WaitlistBanner";
-import { loadContainer } from "@/utils/AnimationsHandler";
 
 export const Home = ({ data }) => {
-
-  useEffect(() => {
-    loadContainer();
-  }, []);
+  const { heroSectionData, stickyMessagesData, homePageData } = data;
 
   return (
     <>
-      <HeroSection data={data} />
+      {/* <ContainerLoader log={data} /> */}
+      <ContainerLoader />
+      <HeroSection data={heroSectionData} pageData={homePageData} stickyMessagesData={stickyMessagesData} />
       <Features />
       <WaitlistBanner />
     </>

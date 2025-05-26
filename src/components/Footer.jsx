@@ -4,9 +4,9 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { joinWaitList } from '@/services';
 import { logError } from '@/utils';
 import { updatedWatched } from '@/utils/AnimationsHandler';
+import { joinWaitList } from '@/services/submissions';
 
 const schema = yup.object({
     company: yup.string().required('Company is required'),

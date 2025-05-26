@@ -14,7 +14,7 @@ export async function generateMetadata() {
 }
 
 export default async function Page() {
-  const data = await fetchHomePageData();
+  const data = await fetchHomePageData();  
   return (
     <Home data={data} />
   );

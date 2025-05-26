@@ -1,8 +1,6 @@
 import React from 'react'
 
 export const HeroSection = ({ data }) => {
-    console.log("data", data);
-
     const { headline, description, ctaButtonLabel } = data;
 
     return (

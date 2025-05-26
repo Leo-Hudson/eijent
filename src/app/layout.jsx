@@ -4,7 +4,7 @@ import { Header } from "@/components/Header";
 import { Toaster } from "sonner";
 import { CustomScripts } from "@/components/CustomScripts";
 import "plyr/dist/plyr.css";
-import { fetchHeaderData } from "@/services";
+import { fetchHeaderData, fetchLayoutData } from "@/services";
 
 export const metadata = {
   title: "Eijent",
@@ -37,8 +37,8 @@ export const viewport = {
 }
 
 export default async function RootLayout({ children }) {
-
-  const headerData = await fetchHeaderData();
+  const data = await fetchLayoutData();
+  const { headerData, footerData } = data;
 
   return (
     <>
@@ -54,7 +54,7 @@ export default async function RootLayout({ children }) {
               <main>
                 {children}
               </main>
-              <Footer />
+              <Footer data={footerData} />
             </div>
           </div>
           <CookiesConsent />

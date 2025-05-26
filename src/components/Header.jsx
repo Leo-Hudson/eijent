@@ -3,7 +3,7 @@ import { PrimaryImage } from './PrimaryImage';
 
 export const Header = ({ data }) => {
 
-    const { sitename, ctaLabel, ctaAction, logo } = data;
+    const { sitename, ctaLabel, logo } = data;
     return (
         <header id="header">
             <div className="header-menu">

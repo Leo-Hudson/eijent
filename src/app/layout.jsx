@@ -1,9 +1,6 @@
-// import "@/assets/app.css";
-// import "@/assets/utils.css";
 import { CookiesConsent } from "@/components/CookiesConsent";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
-import { TransitionWrapper } from "@/components/TransitionWrapper";
 import { Toaster } from "sonner";
 import { CustomScripts } from "@/components/CustomScripts";
 import "plyr/dist/plyr.css";
@@ -11,7 +8,26 @@ import { fetchHeaderData } from "@/services";
 
 export const metadata = {
   title: "Eijent",
-  robots: "noindex,nofollow"
+  robots: "noindex,nofollow",
+  description: "",
+  creator: "Blueprint Studios",
+  authors: [{ name: "Eijent" }],
+  openGraph: {
+    title: "Eijent",
+    description: "",
+    url: "index.html",
+    siteName: "Eijent",
+    images: [
+      {
+        url: "images/capa-face.png",
+        width: 800,
+        height: 800,
+        type: "image/jpeg",
+      },
+    ],
+    type: "website",
+    locale: "en",
+  },
 };
 
 export const viewport = {
@@ -28,18 +44,19 @@ export default async function RootLayout({ children }) {
     <>
       <CustomScripts />
       <html lang="en">
-        <body data-scroll-direction="initial" data-load="first-loading" className="loader-logo-transition overflow-hidden"
-          data-pg="pg-home">
+        <body data-scroll-direction="initial" data-load="first-loading" className="loader-logo-transition overflow-hidden">
           <link rel="stylesheet" href="/assets/utils.css" />
           <link rel="stylesheet" href="/assets/app.css" />
           <div id="customEventHandler"></div>
           <Header data={headerData} />
-          <TransitionWrapper>
-            <main>
-              {children}
+          <div id="main-transition">
+            <div className="wrapper" data-scroll-container>
+              <main>
+                {children}
+              </main>
               <Footer />
-            </main>
-          </TransitionWrapper>
+            </div>
+          </div>
           <CookiesConsent />
           <Toaster position="bottom-right" richColors />
         </body>

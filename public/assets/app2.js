@@ -6313,8 +6313,6 @@ var require_app2 = __commonJS({
           className: toggleClass
         });
 
-        console.log("pin", pin);
-        
         if (pin) {
           pinSpacing === false || pinSpacing === _margin || (pinSpacing = !pinSpacing && pin.parentNode && pin.parentNode.style && _getComputedStyle(pin.parentNode).display === "flex" ? false : _padding);
           self.pin = pin;
@@ -8249,7 +8247,6 @@ var require_app2 = __commonJS({
       let mm = gsapWithCSS$1.matchMedia();
       let animationLogo = document.querySelector(".animation-spacer .animation-wrapper-logo");
 
-      console.log("animationLogo", animationLogo);
       gsapWithCSS$1.set(animationLogo, { clearProps: "transform,opacity" });
       mm.add(`${mediaSize.desktop}`, () => {
         let tl2 = gsapWithCSS$1.timeline({
@@ -13123,8 +13120,6 @@ var require_app2 = __commonJS({
     gsapWithCSS$1.registerPlugin(ScrollTrigger$1);
     function sticky() {
       let stickies = document.querySelectorAll("[data-sticky]:not(.js-running)");
-      console.log("stickies", stickies);
-      
       let mm = gsapWithCSS$1.matchMedia();
       stickies.forEach((element) => {
         element.classList.add("js-running");

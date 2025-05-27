@@ -24,7 +24,7 @@ export const Features = ({ data, pageData }) => {
                             {data.map((feature, index) => {
                                 const { title, description, icon } = feature;
                                 return (
-                                    <li key={index} className="list-item list-item-1">
+                                    <li key={index} className={`list-item list-item-${index + 1}`}>
                                         <div className="container-feature">
                                             <div className="container-img">
                                                 <PrimaryImage url={icon} customClasses={"media"} />

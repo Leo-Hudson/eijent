@@ -1,7 +1,9 @@
-import React from 'react'
+import React from 'react';
+import { generateVideoURL } from '@/utils/generateImageURL';
 
 export const WaitlistBanner = ({ data }) => {
-    const { ctaSectionTagline, ctaSectionTitle, ctaSectionTitle2, ctaButtonLabel } = data;
+    const { ctaSectionTagline, ctaSectionTitle, ctaSectionTitle2, ctaButtonLabel, ctaBackgroundVideo } = data;
+    const ctaBackgroundVideoURL = generateVideoURL(ctaBackgroundVideo);
     return (
         <section className="section-waitlist">
             <div className="container-fluid pos-relative z-5" data-parallax data-parallax-no-mobile
@@ -27,7 +29,7 @@ export const WaitlistBanner = ({ data }) => {
                 </div>
             </div>
             <div className="container-img bg-media">
-                <video data-src="images/lib/video.mp4#t=0.01" src="images/lib/video.mp4#t=0.01" className=" media "
+                <video data-src={ctaBackgroundVideoURL} src={ctaBackgroundVideoURL} className=" media "
                     muted data-autoplay loop playsInline></video>
             </div>
         </section>

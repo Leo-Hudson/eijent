@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import { CustomScripts } from "@/components/CustomScripts";
 import "plyr/dist/plyr.css";
 import { fetchLayoutData } from "@/services";
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 export const metadata = {
   title: "Eijent",
@@ -41,6 +42,7 @@ export default async function RootLayout({ children }) {
           </div>
           <CookiesConsent data={homePageData} />
           <Toaster position="bottom-right" richColors />
+          <SpeedInsights />
         </body>
       </html>
     </>

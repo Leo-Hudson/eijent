@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
+    "@vercel/speed-insights": "^1.2.0",
     "@wix/data": "^1.0.121",
     "@wix/forms": "^1.0.102",
     "@wix/sdk": "^1.12.0",

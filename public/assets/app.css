@@ -3172,7 +3172,7 @@ only screen and (min-width: 768px) and (max-width: 1025px) and (max-height: 550p
 }
 
 /* ---------------------------- end body/wrapper ---------------------------- */
-[data-modal=modal-video]:before {
+/* [data-modal=modal-video]:before {
   content: "";
   width: 100vw;
   height: 100vh;
@@ -3200,7 +3200,7 @@ only screen and (min-width: 768px) and (max-width: 1025px) and (max-height: 550p
   -ms-animation: fadeIn 0.6s cubic-bezier(0.42, 0, 0.58, 1) 0s both 1;
   -o-animation: fadeIn 0.6s cubic-bezier(0.42, 0, 0.58, 1) 0s both 1;
   animation: fadeIn 0.6s cubic-bezier(0.42, 0, 0.58, 1) 0s both 1;
-}
+} */
 
 [data-modal=modal-video][data-modal-state=active] .modal-video.active .section-modal-video {
   -webkit-animation: fadeInUp 0.6s cubic-bezier(0.645, 0.045, 0.355, 1) 0s both 1;
@@ -5180,7 +5180,7 @@ only screen and (min-width: 768px) and (max-width: 1025px) and (max-height: 550p
   width: 100%;
 }
 
-#pg-error .section-error {
+.section-error {
   --btn-bg-color: var(--purple-1);
   --bgt-bg-hover-color: var(--blue-2);
   --btn-text-hover-color: var(--blue-1);
@@ -5196,19 +5196,15 @@ only screen and (min-width: 768px) and (max-width: 1025px) and (max-height: 550p
 }
 
 @media only screen and (min-width: 1025.1px) {
-  #pg-error .section-error .container-img {
+  .section-error .container-img {
     width: 16rem;
   }
 }
 
 @media only screen and (max-width: 1025px) {
-  #pg-error .section-error .container-img {
+  .section-error .container-img {
     width: 12rem;
   }
-}
-
-.no-header #header {
-  display: none;
 }
 
 .strong-fw-600 strong {
@@ -5217,4 +5213,8 @@ only screen and (min-width: 768px) and (max-width: 1025px) and (max-height: 550p
 
 .span-fw-600 strong {
   font-weight: 600;
+}
+
+body:has(.section-error) #header, body:has(.section-error) #footer {
+  display: none;
 }

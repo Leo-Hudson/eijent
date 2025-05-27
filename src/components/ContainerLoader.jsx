@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 
 export const ContainerLoader = ({ log }) => {
     useEffect(() => {
-        if(log) console.log("data", log);
+        if (log) console.log("data", log);
         setTimeout(() => {
             loadContainer();
         }, 500);

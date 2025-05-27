@@ -151,6 +151,21 @@ export const HeroSection = ({ data = {}, pageData = {}, stickyMessagesData = [] 
                         </div>
                     </div>
                 </div>
+                <modal-group name="modal-video">
+                    <modal-container>
+                        <modal-item>
+                            <div class="modal-container-iframe">
+                                <div class="modal-iframe" data-modal-area>
+                                    <iframe
+                                        src={presentationVideoUrl}
+                                        allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media"
+                                        title="Blueprint Studios - Formula One Las Vegas Grand Prix Unveiled"></iframe>
+                                </div>
+                            </div>
+                            <btn-modal-close></btn-modal-close>
+                        </modal-item>
+                    </modal-container>
+                </modal-group>
             </section>
         </div>
     )

@@ -8,8 +8,7 @@ export const Home = ({ data }) => {
 
   return (
     <>
-      {/* <ContainerLoader /> */}
-      <ContainerLoader log={data} />
+      <ContainerLoader />
       <HeroSection data={heroSectionData} pageData={homePageData} stickyMessagesData={stickyMessagesData} />
       <Features data={featuresData} pageData={homePageData} />
       <WaitlistBanner data={homePageData} />

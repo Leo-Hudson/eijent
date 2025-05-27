@@ -8,26 +8,7 @@ import { fetchLayoutData } from "@/services";
 
 export const metadata = {
   title: "Eijent",
-  robots: "noindex,nofollow",
-  description: "",
-  creator: "Blueprint Studios",
-  authors: [{ name: "Eijent" }],
-  openGraph: {
-    title: "Eijent",
-    description: "",
-    url: "index.html",
-    siteName: "Eijent",
-    images: [
-      {
-        url: "images/capa-face.png",
-        width: 800,
-        height: 800,
-        type: "image/jpeg",
-      },
-    ],
-    type: "website",
-    locale: "en",
-  },
+  robots: process.env.ENVIRONMENT !== "PRODUCTION" ? "noindex,nofollow" : null,
 };
 
 export const viewport = {
@@ -38,7 +19,7 @@ export const viewport = {
 
 export default async function RootLayout({ children }) {
   const data = await fetchLayoutData();
-  const { headerData, footerData } = data;
+  const { homePageData, headerData, footerData } = data;
 
   return (
     <>
@@ -47,6 +28,7 @@ export default async function RootLayout({ children }) {
         <body data-scroll-direction="initial" data-load="first-loading" className="loader-logo-transition overflow-hidden">
           <link rel="stylesheet" href="/assets/utils.css" />
           <link rel="stylesheet" href="/assets/app.css" />
+          <link rel="stylesheet" href="/assets/custom.css" />
           <div id="customEventHandler"></div>
           <Header data={headerData} />
           <div id="main-transition">
@@ -57,7 +39,7 @@ export default async function RootLayout({ children }) {
               <Footer data={footerData} />
             </div>
           </div>
-          <CookiesConsent />
+          <CookiesConsent data={homePageData} />
           <Toaster position="bottom-right" richColors />
         </body>
       </html>

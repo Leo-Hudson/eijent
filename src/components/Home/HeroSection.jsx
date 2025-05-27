@@ -1,9 +1,13 @@
-import React from 'react'
+import React from 'react';
+import { generateImageURL, generateVideoURL } from '@/utils/generateImageURL';
+import parse from 'html-react-parser';
 
-export const HeroSection = ({ data }) => {
-    console.log("data", data);
+export const HeroSection = ({ data = {}, pageData = {}, stickyMessagesData = [] }) => {
+    const { headline, description, presentationPopupTitle, presentationPopupDescription, presentationPopupButtonLabel, presentationImage, presentationVideoUrl } = data;
+    const { logoAnimation, ctaButtonLabel, stickyMessagesTitle } = pageData;
 
-    const { headline, description, ctaButtonLabel } = data;
+    const logoURL = generateVideoURL(logoAnimation);
+    const presentationImageURL = generateImageURL({ wix_url: presentationImage });
 
     return (
         <div className="wrapper-sticky">
@@ -22,8 +26,8 @@ export const HeroSection = ({ data }) => {
                             <div className="container-img logo-img" data-parallax
                                 data-trigger=".section-features .container-fluid" data-translate-y="-50rem"
                                 data-end="bottom bottom">
-                                <video data-src="images/logo-animacao.mp4#t=0.01"
-                                    src="images/logo-animacao.mp4#t=0.01" className=" media " muted data-autoplay
+                                <video data-src={logoURL}
+                                    src={logoURL} className=" media " muted data-autoplay
                                     loop playsInline></video>
                             </div>
                         </div>
@@ -53,23 +57,22 @@ export const HeroSection = ({ data }) => {
                                                 <i className="icon-star"></i>
                                                 <div className="container-text">
                                                     <div className="message-title">
-                                                        <h3>We are losing sales</h3>
+                                                        <h3>{presentationPopupTitle}</h3>
                                                     </div>
                                                     <p>
-                                                        We are getting a lot of leads from New York but
-                                                        conversion is low
+                                                        {presentationPopupDescription}
                                                     </p>
                                                 </div>
                                             </div>
                                             <div className="btn-view">
-                                                <span>View</span>
+                                                <span>{presentationPopupButtonLabel}</span>
                                             </div>
                                         </div>
                                         <div className="play">
                                             <i className="icon-play"></i>
                                         </div>
                                         <div className="container-img">
-                                            <img src="images/presentation-img-01.png" className="media  " />
+                                            <img src={presentationImageURL} className="media  " />
                                         </div>
                                     </button>
                                     <button className="btn-close-video">
@@ -79,7 +82,7 @@ export const HeroSection = ({ data }) => {
                                         <div className="container-video container-plyr">
                                             <div className="video-player">
                                                 <iframe
-                                                    src="https://player.vimeo.com/video/909269180?badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479"
+                                                    src={presentationVideoUrl}
                                                     allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media"
                                                     title="Blueprint Studios - Formula One Las Vegas Grand Prix Unveiled"></iframe>
                                             </div>
@@ -94,23 +97,22 @@ export const HeroSection = ({ data }) => {
                                             <i className="icon-star"></i>
                                             <div className="container-text">
                                                 <div className="message-title">
-                                                    <h3>We are losing sales</h3>
+                                                    <h3>{presentationPopupTitle}</h3>
                                                 </div>
                                                 <p>
-                                                    We are getting a lot of leads from New York but conversion
-                                                    is low
+                                                    {presentationPopupDescription}
                                                 </p>
                                             </div>
                                         </div>
                                         <div className="btn-view">
-                                            <span>View</span>
+                                            <span>{presentationPopupButtonLabel}</span>
                                         </div>
                                     </div>
                                     <div className="play">
                                         <i className="icon-play"></i>
                                     </div>
                                     <div className="container-img">
-                                        <img src="images/presentation-img-01.png" className="media  " />
+                                        <img src={presentationImageURL} className="media  " />
                                     </div>
                                 </btn-modal-open>
                             </div>
@@ -124,47 +126,46 @@ export const HeroSection = ({ data }) => {
                     <div className="row">
                         <div className="col-12 column-1">
                             <div className="wrapper-column-sticky">
-                                <h3 className="fs--28 black-1 text-center" data-parallax
+                                <h3 className="strong-fw-600 fs--28 black-1 text-center" data-parallax
                                     data-trigger=".section-features .container-fluid" data-translate-y="-50rem"
                                     data-tablet-translate-y="-30rem" data-phone-translate-y="-20rem"
                                     data-end="bottom bottom">
-                                    <span className="d-block">Hi, I’m <span className="fw-600">Eijent</span></span>
-                                    <span className="d-block mt-tablet-5">your AI-powered sidekick for sales</span>
+                                    {parse(stickyMessagesTitle)}
                                 </h3>
                                 <div className="wrapper-lines" data-parallax
                                     data-trigger=".section-features .container-fluid" data-translate-y="-50rem"
                                     data-tablet-translate-y="-30rem" data-phone-translate-y="-20rem"
                                     data-end="bottom bottom">
-                                    <div className="container-line container-line-1">
-                                        <div className="line">
-                                            <span className="text">I handle the busywork. You close deals 🔥</span>
-                                        </div>
-                                    </div>
-                                    <div className="container-line container-line-2">
-                                        <div className="line">
-                                            <span className="text">I make sure nothing slips through 🎯</span>
-                                        </div>
-                                    </div>
-                                    <div className="container-line container-line-3">
-                                        <div className="line">
-                                            <span className="text">I keep your brand sharp and consistent 🗣️</span>
-                                        </div>
-                                    </div>
-                                    <div className="container-line container-line-4">
-                                        <div className="line">
-                                            <span className="text">🧠 Deep, intuitive, for everyone</span>
-                                        </div>
-                                    </div>
-                                    <div className="container-line container-line-5">
-                                        <div className="line">
-                                            <span className="text">Your next move? I got you ♟️</span>
-                                        </div>
-                                    </div>
+                                    {stickyMessagesData.map((item, index) => {
+                                        const { title } = item;
+                                        return (
+                                            <div key={title} className={`container-line container-line-${index + 1}`}>
+                                                <div className="line">
+                                                    <span className="text">{title}</span>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+                <modal-group name="modal-video">
+                    <modal-container>
+                        <modal-item>
+                            <div class="modal-container-iframe">
+                                <div class="modal-iframe" data-modal-area>
+                                    <iframe
+                                        src={presentationVideoUrl}
+                                        allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media"
+                                        title="Blueprint Studios - Formula One Las Vegas Grand Prix Unveiled"></iframe>
+                                </div>
+                            </div>
+                            <btn-modal-close></btn-modal-close>
+                        </modal-item>
+                    </modal-container>
+                </modal-group>
             </section>
         </div>
     )

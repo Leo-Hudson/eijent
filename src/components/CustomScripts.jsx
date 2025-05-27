@@ -14,7 +14,6 @@ export const CustomScripts = () => {
       <link rel="canonical" href={canonicalUrl} />
       <Script type="module" src="https://cdnjs.cloudflare.com/ajax/libs/plyr/3.7.8/plyr.min.js" crossOrigin="anonymous" />
       <Script type="module" src="/assets/app2.js" crossOrigin="anonymous" />
-      <Script type="module" src="/assets/form-sign-up.js" crossOrigin="anonymous" />
       <Script type="module" src="/assets/loader.js" crossOrigin="anonymous" />
     </>
   );

@@ -1,17 +1,15 @@
-// import "@/assets/app.css";
-// import "@/assets/utils.css";
 import { CookiesConsent } from "@/components/CookiesConsent";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
-import { TransitionWrapper } from "@/components/TransitionWrapper";
 import { Toaster } from "sonner";
 import { CustomScripts } from "@/components/CustomScripts";
 import "plyr/dist/plyr.css";
-import { fetchHeaderData } from "@/services";
+import { fetchLayoutData } from "@/services";
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 export const metadata = {
   title: "Eijent",
-  robots: "noindex,nofollow"
+  robots: process.env.ENVIRONMENT !== "PRODUCTION" ? "noindex,nofollow" : null,
 };
 
 export const viewport = {
@@ -21,28 +19,30 @@ export const viewport = {
 }
 
 export default async function RootLayout({ children }) {
-
-  const headerData = await fetchHeaderData();
+  const data = await fetchLayoutData();
+  const { homePageData, headerData, footerData } = data;
 
   return (
     <>
       <CustomScripts />
-      <html lang="en" data-scroll-direction="initial" data-load="first-loading" className="loader-logo-transition overflow-hidden"
-        data-pg="pg-home">
-        <body data-scroll-direction="initial" data-load="first-loading" className="loader-logo-transition overflow-hidden"
-          data-pg="pg-home">
+      <html lang="en">
+        <body data-scroll-direction="initial" data-load="first-loading" className="loader-logo-transition overflow-hidden">
           <link rel="stylesheet" href="/assets/utils.css" />
           <link rel="stylesheet" href="/assets/app.css" />
+          <link rel="stylesheet" href="/assets/custom.css" />
           <div id="customEventHandler"></div>
           <Header data={headerData} />
-          <TransitionWrapper>
-            <main>
-              {children}
-              <Footer />
-            </main>
-          </TransitionWrapper>
-          <CookiesConsent />
+          <div id="main-transition">
+            <div className="wrapper" data-scroll-container>
+              <main>
+                {children}
+              </main>
+              <Footer data={footerData} />
+            </div>
+          </div>
+          <CookiesConsent data={homePageData} />
           <Toaster position="bottom-right" richColors />
+          <SpeedInsights />
         </body>
       </html>
     </>

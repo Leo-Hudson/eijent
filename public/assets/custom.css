@@ -1,0 +1,17 @@
+
+.strong-fw-600 strong {
+  font-weight: 600;
+}
+
+.span-fw-600 strong {
+  font-weight: 600;
+}
+
+body:has(.section-error) #header,
+body:has(.section-error) #footer {
+  display: none;
+}
+
+.icon-x:before {
+  content: "\e907";
+}

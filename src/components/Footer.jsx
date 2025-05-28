@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { logError } from '@/utils';
-import { updatedWatched } from '@/utils/AnimationsHandler';
+import { resetFormAnimations, updatedWatched } from '@/utils/AnimationsHandler';
 import { joinWaitList } from '@/services/submissions';
 
 const schema = yup.object({
@@ -57,6 +57,10 @@ export const Footer = ({ data }) => {
         setFormState(null);
         SetFeedbackMessage(null);
         updatedWatched();
+
+        setTimeout(() => {
+            resetFormAnimations();
+        }, 500);
     }
 
     return (

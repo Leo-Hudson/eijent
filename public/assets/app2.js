@@ -694,20 +694,44 @@ var require_app2 = __commonJS({
     }
     function templateIframe(dataset) {
       const template = document.createElement("template");
+      setTimeout(() => {
+        const video = document.querySelector(".section-modal-video .video-player");
+        console.log(video);
+        new Plyr(video, {
+          controls: ["play-large", "play", "progress", "mute", "fullscreen"],
+          settings: ["quality", "speed"],
+          autoplay: true,
+          fullscreen: { iosNative: true },
+          clickToPlay: true,
+          youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 },
+          vimeo: {
+            sidedock: 0,
+            controls: 0
+          }
+        });
+      }, 10);
       template.innerHTML = `
-    <modal-group name="iframe" active>
-      <modal-container>
+  <modal-group name="iframe" class="modal-video" active>
+    <modal-container>
+        <btn-modal-close>
+            <i class="icon-close"></i>
+            <span class="hide">Close</span>
+        </btn-modal-close>
         <modal-item>
-        <div class="modal-container-iframe">
-        <div class="modal-iframe" data-modal-area>
-          <iframe src="${dataset.href} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-        </div>
-      </div>
-          
-        <btn-modal-close></btn-modal-close>
+            <section class="section-modal-video">
+                <div class="container-fluid modal-container-iframe">
+                    <div class="row">
+                        <div class="col-12 container-plyr">
+                            <div class="container-img video-player">
+                                <iframe src="${dataset.href}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </modal-item>
-      </modal-container>
-      </modal-group>
+    </modal-container>
+</modal-group>
       `;
       const modal = template.content;
       modal.firstElementChild.addEventListener("modal:close", function () {
@@ -723,7 +747,7 @@ var require_app2 = __commonJS({
       ext = ext.substr(ext.lastIndexOf(".") + 1);
       let media;
       if (["mp4", "webm"].includes(ext)) {
-        media = `<video src="${dataset.href}" autoplay playsInline muted loop data-modal-area ></video>`;
+        media = `<video src="${dataset.href}" autoplay playsinline muted loop data-modal-area ></video>`;
       } else {
         media = `<img src="${dataset.href}" data-modal-area />`;
       }
@@ -752,19 +776,43 @@ var require_app2 = __commonJS({
     }
     function templateVideo(dataset) {
       const template = document.createElement("template");
+      setTimeout(() => {
+        const video = document.querySelector(".section-modal-video .video-player");
+        new Plyr(video, {
+          controls: ["play-large", "play", "progress", "mute", "fullscreen"],
+          settings: ["quality", "speed"],
+          autoplay: true,
+          fullscreen: { iosNative: true },
+          clickToPlay: true,
+          youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 },
+          vimeo: {
+            sidedock: 0,
+            controls: 0
+          }
+        });
+      }, 10);
       template.innerHTML = `
-    <modal-group name="video" active>
-      <modal-container>
+    <modal-group name="video" class="modal-video" active>
+    <modal-container>
+        <btn-modal-close>
+            <i class="icon-close"></i>
+            <span class="hide">Close</span>
+        </btn-modal-close>
         <modal-item>
-          <div class="modal-container-video">
-            <div class="modal-video" data-modal-area>
-            <video autoplay loop controls src="${dataset.href}" />
-              
-            </div>
-          </div>
+            <section class="section-modal-video">
+                <div class="container-fluid modal-container-iframe">
+                    <div class="row">
+                        <div class="col-12 container-plyr">
+                            <div class="container-img">
+                              <video class="video-player" autoplay loop controls src="${dataset.href}"  />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </modal-item>
-      </modal-container>
-      </modal-group>`;
+    </modal-container>
+</modal-group>`;
       const modal = template.content;
       modal.firstElementChild.addEventListener("modal:close", function () {
         this.remove();
@@ -6312,7 +6360,6 @@ var require_app2 = __commonJS({
           targets: trigger2,
           className: toggleClass
         });
-
         if (pin) {
           pinSpacing === false || pinSpacing === _margin || (pinSpacing = !pinSpacing && pin.parentNode && pin.parentNode.style && _getComputedStyle(pin.parentNode).display === "flex" ? false : _padding);
           self.pin = pin;
@@ -8110,6 +8157,15 @@ var require_app2 = __commonJS({
         wrapper.classList.add("js-running");
       }
       initScroll();
+      document.addEventListener("pjax:complete", initScroll);
+      document.addEventListener("pjax:switch", function () {
+        let previouslyCreatedSmoother = ScrollSmoother.get();
+        if (previouslyCreatedSmoother) previouslyCreatedSmoother.kill();
+        gsapWithCSS$1.globalTimeline.getChildren().forEach((t) => t.kill());
+        ScrollTrigger$1.getAll().forEach((trigger2) => {
+          trigger2.kill();
+        });
+      });
       document.addEventListener("modal:open", function () {
         let smoother = ScrollSmoother.get();
         if (smoother) smoother.paused(true);
@@ -8246,7 +8302,6 @@ var require_app2 = __commonJS({
     function timelineLogoAnimationDesktop() {
       let mm = gsapWithCSS$1.matchMedia();
       let animationLogo = document.querySelector(".animation-spacer .animation-wrapper-logo");
-
       gsapWithCSS$1.set(animationLogo, { clearProps: "transform,opacity" });
       mm.add(`${mediaSize.desktop}`, () => {
         let tl2 = gsapWithCSS$1.timeline({

@@ -17,18 +17,8 @@ export const loadContainer = () => {
   triggerEvent("loadContainer");
 };
 
-// export const markPageLoaded = (watched = true) => {
-//   if (typeof window !== 'undefined') {
-//     closeModals();
-//     setTimeout(() => window.scrollTo({ top: 0 }), 200);
-//     initAnimations();
-//     if (watched) updatedWatched();
-//     setTimeout(loadPinterest, 1000);
-//     const isFirstLoadDone = document.body.classList.contains("first-load-done");
-//     if (isFirstLoadDone) {
-//       pageLoadEnd();
-//     } else {
-//       firstLoadAnimation();
-//     }
-//   }
-// }
+export const resetFormAnimations = () => {
+  Array.from(document.querySelectorAll(".preenchido")).forEach((elem) =>
+    elem.classList.remove("preenchido")
+  );
+};

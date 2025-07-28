@@ -21,16 +21,23 @@ body:has(.section-error) #footer {
   }
 }
 
+.section-presentation .container-1 {
+  padding-top: clamp(40rem, 40vh, 40rem);
+}
+
+
 @media only screen and (min-width: 1025.1px) {
   .header-menu {
     padding: 2.4rem;
   }
 }
 
-.section-presentation .container-1 {
-  padding-top: clamp(40rem, 40vh, 40rem);
-}
-
 .header-menu {
   padding: 1.2rem;
+}
+
+@media only screen and (min-width: 1025.1px) {
+  #footer {
+    margin-top: auto;
+  }
 }

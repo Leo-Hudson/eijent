@@ -1,5 +1,4 @@
 "use client";
-import { CustomLink } from './CustomLink';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -17,7 +16,7 @@ const schema = yup.object({
 }).required();
 
 export const Footer = ({ data }) => {
-    const { socialLinks, copyright, emailPlaceholder, poweredBy, companyPlaceholder, rolePlaceholder, firstNamePlaceholder, buttonLabel, title, lastNamePlaceholder } = data;
+    const { copyright, emailPlaceholder, poweredBy, companyPlaceholder, rolePlaceholder, firstNamePlaceholder, buttonLabel, title, lastNamePlaceholder } = data;
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formState, setFormState] = useState();
     const [feedbackMessage, SetFeedbackMessage] = useState();
@@ -68,7 +67,7 @@ export const Footer = ({ data }) => {
             <div className="container-fluid">
                 <div className="row row-1">
                     <div className="col-lg-6 col-landscape-8 column-1 mx-auto">
-                        {/* <h2 className="fs--60 fs-mobile-36 white-1 text-center">{title}</h2>
+                        <h2 className="fs--60 fs-mobile-36 white-1 text-center">{title}</h2>
                         <div className="container-sign-up" data-form-state={formState}>
                             <form onSubmit={handleSubmit(onSubmit)} className="form-sign-up" >
                                 <div className="container-input col-lg-6">
@@ -123,16 +122,7 @@ export const Footer = ({ data }) => {
                                 </div>
                             </form>
                             {feedbackMessage && (<h3 className="feedback-sign-up" data-aos="fadeIn">{feedbackMessage}</h3>)}
-                        </div> */}
-                        <ul className="list-social-media">
-                            {socialLinks.map(({ title, link, iconClassName }) => (
-                                <li key={title}>
-                                    <CustomLink to={link} className="link-social-media" target="_blank" rel="noopener noreferrer">
-                                        <i className={iconClassName}></i>
-                                    </CustomLink>
-                                </li>
-                            ))}
-                        </ul>
+                        </div>
                     </div>
                 </div>
                 <div className="row row-2">

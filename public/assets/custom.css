@@ -25,17 +25,6 @@ body:has(.section-error) #footer {
   padding-top: clamp(40rem, 40vh, 40rem);
 }
 
-
-@media only screen and (min-width: 1025.1px) {
-  .header-menu {
-    padding: 2.4rem;
-  }
-}
-
-.header-menu {
-  padding: 1.2rem;
-}
-
 @media only screen and (min-width: 1025.1px) {
   #footer {
     margin-top: auto;

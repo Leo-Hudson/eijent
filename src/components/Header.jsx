@@ -3,7 +3,7 @@ import { PrimaryImage } from './PrimaryImage';
 
 export const Header = ({ data }) => {
 
-    const { sitename, logo } = data;
+    const { sitename, ctaLabel, logo } = data;
     return (
         <header id="header">
             <div className="header-menu">
@@ -15,6 +15,9 @@ export const Header = ({ data }) => {
                         </div>
                     </button>
                 </div>
+                <button className="btn-join-waitlist" data-scrollto="#footer" data-duration="1.4">
+                    <span>{ctaLabel}</span>
+                </button>
             </div>
         </header>
     )

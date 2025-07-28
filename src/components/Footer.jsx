@@ -51,13 +51,13 @@ export const Footer = ({ data }) => {
         }
     };
 
-    const resetStates = (resetFormAnimations = false) => {
+    const resetStates = (resetAnimation = false) => {
         setIsSubmitting(false);
         setFormState(null);
         SetFeedbackMessage(null);
         updatedWatched();
 
-        if (resetFormAnimations) {
+        if (resetAnimation) {
             setTimeout(() => {
                 resetFormAnimations();
             }, 500);
@@ -65,7 +65,7 @@ export const Footer = ({ data }) => {
     }
 
     return (
-        <footer id="footer footer-custom">
+        <footer id="footer" className='footer-custom'>
             <div className="container-fluid">
                 <div className="row row-1">
                     <div className="col-lg-6 col-landscape-8 column-1 mx-auto">

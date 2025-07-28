@@ -65,7 +65,7 @@ export const Footer = ({ data }) => {
     }
 
     return (
-        <footer id="footer">
+        <footer id="footer footer-custom">
             <div className="container-fluid">
                 <div className="row row-1">
                     <div className="col-lg-6 col-landscape-8 column-1 mx-auto">

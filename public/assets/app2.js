@@ -696,7 +696,6 @@ var require_app2 = __commonJS({
       const template = document.createElement("template");
       setTimeout(() => {
         const video = document.querySelector(".section-modal-video .video-player");
-        console.log(video);
         new Plyr(video, {
           controls: ["play-large", "play", "progress", "mute", "fullscreen"],
           settings: ["quality", "speed"],
@@ -8315,7 +8314,7 @@ var require_app2 = __commonJS({
             invalidateOnRefresh: true
           }
         });
-        tl2.fromTo(animationLogo, { scale: "1", autoAlpha: 0.4 }, { scale: "2.3", autoAlpha: 0.05, duration: 1, immediateRender: false }).fromTo(".section-presentation .container-1 .column-1 .wrapper-img .content-img", { translateY: "0" }, { translateY: "15rem", duration: 1 }, "<").fromTo(".section-presentation .bg-white .bg", { clipPath: "inset(100% 0% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 0.8 }, "-=0.8").fromTo(".section-presentation .wrapper-img .container-img .media", { scale: "1" }, { scale: "1.5", duration: 0.8 }, "-=0.8").fromTo(".section-presentation .wrapper-img .blur-mask", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.8 }, "-=0.8").fromTo(".section-presentation .wrapper-img .chat-message", { autoAlpha: 0, translateY: "10vh" }, { autoAlpha: 1, translateY: "0", duration: 0.8 }, "-=0.8").fromTo(".section-presentation .wrapper-img .play", { scale: "0", autoAlpha: 0 }, { scale: "1", autoAlpha: 1, duration: 0.8 }, "-=0.8");
+        tl2.fromTo(animationLogo, { scale: "1", autoAlpha: 0.4 }, { scale: "2.3", autoAlpha: 0.05, duration: 1, immediateRender: false }).fromTo(".section-presentation .container-1 .column-1 .wrapper-img .content-img", { translateY: "0" }, { translateY: "15rem", duration: 1 }, "<").fromTo(".section-presentation .wrapper-img .container-img .media", { scale: "1" }, { scale: "1.5", duration: 0.8 }, "-=0.8").fromTo(".section-presentation .wrapper-img .blur-mask", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.8 }, "-=0.8").fromTo(".section-presentation .wrapper-img .chat-message", { autoAlpha: 0, translateY: "10vh" }, { autoAlpha: 1, translateY: "0", duration: 0.8 }, "-=0.8").fromTo(".section-presentation .wrapper-img .play", { scale: "0", autoAlpha: 0 }, { scale: "1", autoAlpha: 1, duration: 0.8 }, "-=0.8");
         let tl3 = gsapWithCSS$1.timeline({
           scrollTrigger: {
             trigger: ".section-presentation .container-2",
@@ -8340,6 +8339,8 @@ var require_app2 = __commonJS({
           }
         });
         tl4.to(animationLogo, { translateY: "5vh", immediateRender: false });
+        tl4.fromTo(".section-presentation .container-2", { background: "transparent" }, { background: "#F4F6F7", duration: 0.8 }, "-=0.8").fromTo(".section-presentation .bg-white .bg", { clipPath: "inset(100% 0% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 0.8 }, "-=0.8");
+
         let tlOpacity = gsapWithCSS$1.timeline({
           scrollTrigger: {
             trigger: ".section-presentation .container-2 .column-1",
@@ -8470,7 +8471,7 @@ var require_app2 = __commonJS({
             invalidateOnRefresh: true
           }
         });
-        tl2.fromTo(animationLogo, { scale: "1", autoAlpha: 1 }, { scale: tl2Totl3scale, autoAlpha: 0.05, duration: 1, immediateRender: false }).fromTo(".animation-placeholder-center", { top: topFromTl2 }, { top: "50%", duration: 1, immediateRender: false }, "<").fromTo(".section-presentation .container-1 .column-1 .wrapper-img .content-img", { translateY: "0" }, { translateY: "15rem", duration: 1 }, "<").fromTo(".section-presentation .bg-white .bg", { clipPath: "inset(100% 0% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 0.8 }, "-=0.8").fromTo(".section-presentation .wrapper-img .container-img .media", { scale: "1" }, { scale: "1.5", duration: 0.8 }, "-=0.8").fromTo(".section-presentation .wrapper-img .blur-mask", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.8 }, "-=0.8").fromTo(".section-presentation .wrapper-img .chat-message", { autoAlpha: 0, translateY: "10vh" }, { autoAlpha: 1, translateY: "0", duration: 0.8 }, "-=0.8").fromTo(".section-presentation .wrapper-img .play", { scale: "0", autoAlpha: 0 }, { scale: "1", autoAlpha: 1, duration: 0.8 }, "-=0.8");
+        tl2.fromTo(animationLogo, { scale: "1", autoAlpha: 1 }, { scale: tl2Totl3scale, autoAlpha: 0.05, duration: 1, immediateRender: false }).fromTo(".animation-placeholder-center", { top: topFromTl2 }, { top: "50%", duration: 1, immediateRender: false }, "<").fromTo(".section-presentation .container-1 .column-1 .wrapper-img .content-img", { translateY: "0" }, { translateY: "15rem", duration: 1 }, "<").fromTo(".section-presentation .wrapper-img .container-img .media", { scale: "1" }, { scale: "1.5", duration: 0.8 }, "-=0.8").fromTo(".section-presentation .wrapper-img .blur-mask", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.8 }, "-=0.8").fromTo(".section-presentation .wrapper-img .chat-message", { autoAlpha: 0, translateY: "10vh" }, { autoAlpha: 1, translateY: "0", duration: 0.8 }, "-=0.8").fromTo(".section-presentation .wrapper-img .play", { scale: "0", autoAlpha: 0 }, { scale: "1", autoAlpha: 1, duration: 0.8 }, "-=0.8");
         let tl3 = gsapWithCSS$1.timeline({
           scrollTrigger: {
             trigger: ".section-presentation .container-2",
@@ -8494,7 +8495,7 @@ var require_app2 = __commonJS({
             invalidateOnRefresh: true
           }
         });
-        tl4.fromTo(animationLogo, { translateY: "-5vh" }, { translateY: "5vh", immediateRender: false });
+        tl4.fromTo(animationLogo, { translateY: "-5vh" }, { translateY: "5vh", immediateRender: false }).fromTo(".section-presentation .container-2", { background: "transparent" }, { background: "#F4F6F7", duration: 0.8 }, "-=0.8").fromTo(".section-presentation .bg-white .bg", { clipPath: "inset(100% 0% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 0.8 }, "-=0.8");;
         let tlOpacity = gsapWithCSS$1.timeline({
           scrollTrigger: {
             trigger: ".section-presentation .container-2 .column-1",
@@ -13300,8 +13301,8 @@ var require_app2 = __commonJS({
       const timelineInit = () => {
         timelineLogoAnimationDesktop();
         timelineLogoAnimationMobile();
-        timelineHeader();
-        videoPlayer();
+        // timelineHeader();
+        // videoPlayer();
       }
       const page = window.location.pathname.trim() === "/" ? "home" : location.pathname.substring(1);
       const cleanPage = page.split("/")[0].trim();

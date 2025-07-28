@@ -41,14 +41,14 @@ export const HeroSection = ({ data = {}, pageData = {}, stickyMessagesData = [] 
                         <div className="col-md-8 col-landscape-10 offset-md-2 offset-landscape-1 column-1 white-1">
                             <div className="wrapper-text">
                                 <h1 className="fs--80 text-center">{headline}</h1>
-                                <p className="fs--21 text-center">
+                                {/* <p className="fs--21 text-center">
                                     {description}
                                 </p>
                                 <button data-scrollto="#footer" className="btn-1">
                                     <span>{ctaButtonLabel}</span>
-                                </button>
+                                </button> */}
                             </div>
-                            <div className="wrapper-img">
+                            {/* <div className="wrapper-img">
                                 <div className="content-img container-video-player no-mobile">
                                     <button className="btn-open-video">
                                         <div className="blur-mask"></div>
@@ -116,14 +116,14 @@ export const HeroSection = ({ data = {}, pageData = {}, stickyMessagesData = [] 
                                         <img src={presentationImageURL} className="media  " />
                                     </div>
                                 </btn-modal-open>
-                            </div>
+                            </div> */}
                         </div>
                     </div>
                     <div className="bg-white">
                         <div className="bg"></div>
                     </div>
                 </div>
-                <div className="container-fluid container-2">
+                <div className="container-fluid container-2" style={{ background: "transparent" }}>
                     <div className="row">
                         <div className="col-12 column-1">
                             <div className="wrapper-column-sticky">

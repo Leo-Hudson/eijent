@@ -1,4 +1,3 @@
-
 .strong-fw-600 strong {
   font-weight: 600;
 }
@@ -14,4 +13,11 @@ body:has(.section-error) #footer {
 
 .icon-x:before {
   content: "\e907";
+}
+
+@media only screen and (min-width: 1025.1px) {
+  .section-presentation .container-1 {
+    width: var(--w-100vw);
+    padding-top: clamp(40rem, 40vh, 40rem);
+  }
 }

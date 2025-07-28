@@ -6,7 +6,7 @@ export const Header = ({ data }) => {
     const { sitename, ctaLabel, logo } = data;
     return (
         <header id="header">
-            <div className="header-menu">
+            <div className="header-menu" style={{ padding: "2.4rem" }}>
                 <div className="wrapper-logo">
                     <button className="logo" data-pjax aria-label="Eijent" data-scrollto="0" data-duration="1.4">
                         <span className="hide">{sitename}</span>
@@ -15,9 +15,9 @@ export const Header = ({ data }) => {
                         </div>
                     </button>
                 </div>
-                <button className="btn-join-waitlist" data-scrollto="#footer" data-duration="1.4">
+                {/* <button className="btn-join-waitlist" data-scrollto="#footer" data-duration="1.4">
                     <span>{ctaLabel}</span>
-                </button>
+                </button> */}
             </div>
         </header>
     )

@@ -68,7 +68,7 @@ export const Footer = ({ data }) => {
             <div className="container-fluid">
                 <div className="row row-1">
                     <div className="col-lg-6 col-landscape-8 column-1 mx-auto">
-                        <h2 className="fs--60 fs-mobile-36 white-1 text-center">{title}</h2>
+                        {/* <h2 className="fs--60 fs-mobile-36 white-1 text-center">{title}</h2>
                         <div className="container-sign-up" data-form-state={formState}>
                             <form onSubmit={handleSubmit(onSubmit)} className="form-sign-up" >
                                 <div className="container-input col-lg-6">
@@ -123,8 +123,7 @@ export const Footer = ({ data }) => {
                                 </div>
                             </form>
                             {feedbackMessage && (<h3 className="feedback-sign-up" data-aos="fadeIn">{feedbackMessage}</h3>)}
-
-                        </div>
+                        </div> */}
                         <ul className="list-social-media">
                             {socialLinks.map(({ title, link, iconClassName }) => (
                                 <li key={title}>

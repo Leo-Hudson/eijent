@@ -8314,7 +8314,7 @@ var require_app2 = __commonJS({
             invalidateOnRefresh: true
           }
         });
-        tl2.fromTo(animationLogo, { scale: "1", autoAlpha: 0.4 }, { scale: "2.3", autoAlpha: 0.05, duration: 1, immediateRender: false }).fromTo(".section-presentation .container-1 .column-1 .wrapper-img .content-img", { translateY: "0" }, { translateY: "15rem", duration: 1 }, "<").fromTo(".section-presentation .wrapper-img .container-img .media", { scale: "1" }, { scale: "1.5", duration: 0.8 }, "-=0.8").fromTo(".section-presentation .wrapper-img .blur-mask", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.8 }, "-=0.8").fromTo(".section-presentation .wrapper-img .chat-message", { autoAlpha: 0, translateY: "10vh" }, { autoAlpha: 1, translateY: "0", duration: 0.8 }, "-=0.8").fromTo(".section-presentation .wrapper-img .play", { scale: "0", autoAlpha: 0 }, { scale: "1", autoAlpha: 1, duration: 0.8 }, "-=0.8");
+        tl2.fromTo(animationLogo, { scale: ".8", autoAlpha: 0.6 }, { scale: ".9", autoAlpha: 0.05, duration: 1, immediateRender: false }).fromTo(".section-presentation .container-1 .column-1 .wrapper-img .content-img", { translateY: "0" }, { translateY: "15rem", duration: 1 }, "<").fromTo(".section-presentation .wrapper-img .container-img .media", { scale: "1" }, { scale: "1.5", duration: 0.8 }, "-=0.8").fromTo(".section-presentation .wrapper-img .blur-mask", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.8 }, "-=0.8").fromTo(".section-presentation .wrapper-img .chat-message", { autoAlpha: 0, translateY: "10vh" }, { autoAlpha: 1, translateY: "0", duration: 0.8 }, "-=0.8").fromTo(".section-presentation .wrapper-img .play", { scale: "0", autoAlpha: 0 }, { scale: "1", autoAlpha: 1, duration: 0.8 }, "-=0.8");
         let tl3 = gsapWithCSS$1.timeline({
           scrollTrigger: {
             trigger: ".section-presentation .container-2",
@@ -8410,123 +8410,173 @@ var require_app2 = __commonJS({
     }
     gsapWithCSS$1.registerPlugin(ScrollTrigger$1, ScrollSmoother, Power3);
     function timelineLogoAnimationMobile() {
-      let mm = gsapWithCSS$1.matchMedia();
-      let animationLogo = document.querySelector(".animation-spacer .animation-wrapper-logo");
-      let animationLogoPlaceholder = document.querySelector(".animation-spacer .animation-placeholder-center");
-      gsapWithCSS$1.set(animationLogo, { clearProps: "transform, opacity" });
-      gsapWithCSS$1.set(animationLogoPlaceholder, { clearProps: "transform, opacity" });
-      let topFromTl2;
-      let tl2start;
-      let tl2end;
-      let tl3start;
-      let tl2Totl3scale;
-      let tl3Totl4scale;
+      const mm = gsapWithCSS$1.matchMedia();
+      const animationLogo = document.querySelector(".animation-spacer .animation-wrapper-logo");
+      const animationLogoPlaceholder = document.querySelector(".animation-spacer .animation-placeholder-center");
+
+      gsapWithCSS$1.set([animationLogo, animationLogoPlaceholder], { clearProps: "transform, opacity" });
+
+      let config = {};
+
+      // Configure media queries
       mm.add(`${mediaSize.tablet}`, () => {
-        tl2start = "-50% 70%";
-        tl2end = "top 30%";
-        tl3start = "5% 70%";
-        tl3Totl4scale = "1.1";
+        Object.assign(config, {
+          tl2start: "-50% 70%",
+          tl2end: "top 30%",
+          tl3start: "5% 70%",
+          tl3Totl4scale: "1.1"
+        });
       });
+
       mm.add(`${mediaSize.tabletPortrait}`, () => {
-        topFromTl2 = "38rem";
-        tl2Totl3scale = "2";
+        Object.assign(config, { topFromTl2: "38rem", tl2Totl3scale: "2" });
       });
+
       mm.add(`${mediaSize.tabletLandscape}`, () => {
-        topFromTl2 = "23rem";
-        tl2Totl3scale = "3";
+        Object.assign(config, { topFromTl2: "23rem", tl2Totl3scale: "3" });
       });
+
       mm.add(`${mediaSize.phone}`, () => {
-        topFromTl2 = "38rem";
-        tl2start = "-50% 200px";
-        tl2end = "top top";
-        tl3start = "top 70%";
-        tl2Totl3scale = "3";
-        tl3Totl4scale = "2";
+        Object.assign(config, {
+          topFromTl2: "38rem",
+          tl2start: "-50% 200px",
+          tl2end: "top top",
+          tl3start: "top 70%",
+          tl2Totl3scale: "2",
+          tl3Totl4scale: "2"
+        });
       });
+
       mm.add(`${mediaSize.phone}`, () => {
-        topFromTl2 = "20rem";
+        config.topFromTl2 = "20rem";
       });
+
       mm.add(`${mediaSize.phonePortrait}`, () => {
-        tl3Totl4scale = "2";
+        config.tl3Totl4scale = "2";
       });
+
       mm.add(`${mediaSize.landscape}`, () => {
-        tl3Totl4scale = "1.4";
+        Object.assign(config, { tl3Totl4scale: "1.4", topFromTl2: "16rem" });
       });
+
       mm.add(`${mediaSize.landscapeX}`, () => {
-        tl3Totl4scale = "1.4";
-        topFromTl2 = "18.5rem";
+        Object.assign(config, { tl3Totl4scale: "1.4", topFromTl2: "18.5rem" });
       });
-      mm.add(`${mediaSize.landscape}`, () => {
-        topFromTl2 = "16rem";
-      });
+
+      const commonScrollOptions = {
+        scrub: true,
+        markers: false,
+        anticipatePin: true,
+        invalidateOnRefresh: true
+      };
+
       mm.add(`${mediaSize.mobile}`, () => {
-        let tl2 = gsapWithCSS$1.timeline({
+        // Timeline 2 - Initial animation
+        const tl2 = gsapWithCSS$1.timeline({
           scrollTrigger: {
+            ...commonScrollOptions,
             trigger: ".section-presentation .container-1 .column-1 .wrapper-img",
-            start: tl2start,
-            end: tl2end,
-            scrub: true,
-            markers: false,
-            anticipatePin: true,
-            invalidateOnRefresh: true
+            start: config.tl2start,
+            end: config.tl2end
           }
         });
-        tl2.fromTo(animationLogo, { scale: "1", autoAlpha: 1 }, { scale: tl2Totl3scale, autoAlpha: 0.05, duration: 1, immediateRender: false }).fromTo(".animation-placeholder-center", { top: topFromTl2 }, { top: "50%", duration: 1, immediateRender: false }, "<").fromTo(".section-presentation .container-1 .column-1 .wrapper-img .content-img", { translateY: "0" }, { translateY: "15rem", duration: 1 }, "<").fromTo(".section-presentation .wrapper-img .container-img .media", { scale: "1" }, { scale: "1.5", duration: 0.8 }, "-=0.8").fromTo(".section-presentation .wrapper-img .blur-mask", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.8 }, "-=0.8").fromTo(".section-presentation .wrapper-img .chat-message", { autoAlpha: 0, translateY: "10vh" }, { autoAlpha: 1, translateY: "0", duration: 0.8 }, "-=0.8").fromTo(".section-presentation .wrapper-img .play", { scale: "0", autoAlpha: 0 }, { scale: "1", autoAlpha: 1, duration: 0.8 }, "-=0.8");
-        let tl3 = gsapWithCSS$1.timeline({
+
+        tl2.fromTo(animationLogo,
+          { scale: "1", autoAlpha: 1 },
+          { scale: config.tl2Totl3scale, autoAlpha: 0.05, duration: 1, immediateRender: false }
+        ).fromTo(".animation-placeholder-center",
+          { top: config.topFromTl2 },
+          { top: "50%", duration: 1, immediateRender: false }, "<"
+        ).fromTo(".section-presentation .container-1 .column-1 .wrapper-img .content-img",
+          { translateY: "0" },
+          { translateY: "15rem", duration: 1 }, "<"
+        ).fromTo(".section-presentation .wrapper-img .container-img .media",
+          { scale: "1" },
+          { scale: "1.5", duration: 0.8 }, "-=0.8"
+        ).fromTo(".section-presentation .wrapper-img .blur-mask",
+          { autoAlpha: 0 },
+          { autoAlpha: 1, duration: 0.8 }, "-=0.8"
+        ).fromTo(".section-presentation .wrapper-img .chat-message",
+          { autoAlpha: 0, translateY: "10vh" },
+          { autoAlpha: 1, translateY: "0", duration: 0.8 }, "-=0.8"
+        ).fromTo(".section-presentation .wrapper-img .play",
+          { scale: "0", autoAlpha: 0 },
+          { scale: "1", autoAlpha: 1, duration: 0.8 }, "-=0.8"
+        );
+
+        // Timeline 3 - Logo scale up
+        const tl3 = gsapWithCSS$1.timeline({
           scrollTrigger: {
+            ...commonScrollOptions,
             trigger: ".section-presentation .container-2",
-            start: tl3start,
-            end: "25% center",
-            scrub: true,
-            markers: false,
-            anticipatePin: true,
-            invalidateOnRefresh: true
+            start: config.tl3start,
+            end: "25% center"
           }
         });
-        tl3.fromTo(animationLogo, { scale: tl2Totl3scale, autoAlpha: 0.05, translateY: "0" }, { scale: tl3Totl4scale, autoAlpha: 1, translateY: "-5vh", immediateRender: false });
-        let tl4 = gsapWithCSS$1.timeline({
+
+        tl3.fromTo(animationLogo,
+          { scale: config.tl2Totl3scale, autoAlpha: 0.05, translateY: "0" },
+          { scale: config.tl3Totl4scale, autoAlpha: 1, translateY: "-5vh", immediateRender: false }
+        );
+
+        // Timeline 4 - Logo movement and background
+        const tl4 = gsapWithCSS$1.timeline({
           scrollTrigger: {
+            ...commonScrollOptions,
             trigger: ".section-presentation .container-2 .column-1",
             start: "top 70%",
-            end: "25% center",
-            scrub: true,
-            markers: false,
-            anticipatePin: true,
-            invalidateOnRefresh: true
+            end: "25% center"
           }
         });
-        tl4.fromTo(animationLogo, { translateY: "-5vh" }, { translateY: "5vh", immediateRender: false }).fromTo(".section-presentation .container-2", { background: "transparent" }, { background: "#F4F6F7", duration: 0.8 }, "-=0.8").fromTo(".section-presentation .bg-white .bg", { clipPath: "inset(100% 0% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 0.8 }, "-=0.8");;
-        let tlOpacity = gsapWithCSS$1.timeline({
+
+        tl4.fromTo(animationLogo,
+          { translateY: "-5vh" },
+          { translateY: "5vh", immediateRender: false }
+        ).fromTo(".section-presentation .container-2",
+          { background: "transparent" },
+          { background: "#F4F6F7", duration: 0.8 }, "-=0.8"
+        );
+
+        // Timeline Opacity - Logo fade effect
+        const tlOpacity = gsapWithCSS$1.timeline({
           scrollTrigger: {
+            ...commonScrollOptions,
             trigger: ".section-presentation .container-2 .column-1",
             start: "10% 70%",
-            end: "40% center",
-            scrub: true,
-            markers: false,
-            anticipatePin: true,
-            invalidateOnRefresh: true
+            end: "40% center"
           }
         });
-        tlOpacity.fromTo(animationLogo, { scale: tl3Totl4scale, opacity: 1 }, { scale: "1", opacity: 0.2, immediateRender: false }).to(animationLogo, { scale: tl3Totl4scale, opacity: 1, immediateRender: false });
-        let tlLines = gsapWithCSS$1.timeline({
+
+        tlOpacity.fromTo(animationLogo,
+          { scale: config.tl3Totl4scale, opacity: 1 },
+          { scale: "1", opacity: 0.2, immediateRender: false }
+        ).to(animationLogo,
+          { scale: config.tl3Totl4scale, opacity: 1, immediateRender: false }
+        );
+
+        // Timeline Lines - Animated lines
+        const tlLines = gsapWithCSS$1.timeline({
           scrollTrigger: {
+            ...commonScrollOptions,
             trigger: ".section-presentation .container-2 .column-1",
             start: "top top",
             end: "bottom bottom",
-            scrub: true,
             pin: ".section-presentation .container-2 .wrapper-column-sticky",
             pinSpacing: false,
-            pinType: "fixed",
-            markers: false,
-            anticipatePin: true,
-            invalidateOnRefresh: true
+            pinType: "fixed"
           }
         });
-        tlLines.fromTo(".section-presentation .container-line-1", { translateY: "10vh", autoAlpha: 0 }, { translateY: "0", autoAlpha: 1 }).fromTo(".section-presentation .container-line-2", { translateY: "10vh", autoAlpha: 0 }, { translateY: "0", autoAlpha: 1 }).fromTo(".section-presentation .container-line-3", { translateY: "10vh", autoAlpha: 0 }, { translateY: "0", autoAlpha: 1 }).fromTo(".section-presentation .container-line-4", { translateY: "10vh", autoAlpha: 0 }, { translateY: "0", autoAlpha: 1 }).fromTo(".section-presentation .container-line-5", { translateY: "10vh", autoAlpha: 0 }, { translateY: "0", autoAlpha: 1 });
+
+        // Animate all lines with a loop
+        for (let i = 1; i <= 5; i++) {
+          tlLines.fromTo(`.section-presentation .container-line-${i}`,
+            { translateY: "10vh", autoAlpha: 0 },
+            { translateY: "0", autoAlpha: 1 }
+          );
+        }
       });
-      window.addEventListener("orientationchange", function () {
-        ScrollTrigger$1.refresh();
-      });
+
+      window.addEventListener("orientationchange", () => ScrollTrigger$1.refresh());
     }
     function videoPlayer() {
       const video = document.querySelector(".video-player");

@@ -6,7 +6,7 @@ export const Header = ({ data }) => {
     const { sitename, ctaLabel, logo } = data;
     return (
         <header id="header">
-            <div className="header-menu" style={{ padding: "2.4rem" }}>
+            <div className="header-menu">
                 <div className="wrapper-logo">
                     <button className="logo" data-pjax aria-label="Eijent" data-scrollto="0" data-duration="1.4">
                         <span className="hide">{sitename}</span>

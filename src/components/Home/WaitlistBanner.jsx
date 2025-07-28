@@ -20,11 +20,11 @@ export const WaitlistBanner = ({ data }) => {
                                 <span className="d-block">{ctaSectionTitle2}</span>
                             </h2>
                         </div>
-                        <div className="container-btn no-mobile">
+                        {/* <div className="container-btn no-mobile">
                             <button data-scrollto="#footer" className="btn-1">
                                 <span>{ctaButtonLabel}</span>
                             </button>
-                        </div>
+                        </div> */}
                     </div>
                 </div>
             </div>

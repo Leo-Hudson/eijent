@@ -1,14 +1,13 @@
+"use client";
 import React from 'react';
-import { generateImageURL, generateVideoURL } from '@/utils/generateImageURL';
-import parse from 'html-react-parser';
+import { generateVideoURL } from '@/utils/generateImageURL';
+import { useMobile } from '@/hooks/useDevice';
 
-export const HeroSection = ({ data = {}, pageData = {}, stickyMessagesData = [] }) => {
-    const { headline, description, presentationPopupTitle, presentationPopupDescription, presentationPopupButtonLabel, presentationImage, presentationVideoUrl, presentationVideo } = data;
-    const { logoAnimation, ctaButtonLabel, stickyMessagesTitle } = pageData;
-
+export const HeroSection = ({ data = {}, pageData = {} }) => {
+    const { headline } = data;
+    const { logoAnimation } = pageData;
     const logoURL = generateVideoURL(logoAnimation);
-    const presentationImageURL = generateImageURL({ wix_url: presentationImage });
-    const presentationVideoURLModal = generateVideoURL(presentationVideo);
+    const isMobile = useMobile();
 
     return (
         <div className="wrapper-sticky">
@@ -25,8 +24,8 @@ export const HeroSection = ({ data = {}, pageData = {}, stickyMessagesData = [] 
                     <div className="animation-placeholder-center">
                         <div className="animation-wrapper-logo">
                             <div className="container-img logo-img" data-parallax
-                                data-trigger=".section-features .container-fluid" data-translate-y="-50rem"
-                                data-end="bottom bottom">
+                                data-trigger=".section-features .container-fluid" data-translate-y={isMobile ? "6rem" : "-2rem"}
+                                data-end="bottom bottom" data-scale=".6">
                                 <video data-src={logoURL}
                                     src={logoURL} className=" media " muted data-autoplay
                                     loop playsInline></video>
@@ -41,113 +40,6 @@ export const HeroSection = ({ data = {}, pageData = {}, stickyMessagesData = [] 
                         <div className="col-md-8 col-landscape-10 offset-md-2 offset-landscape-1 column-1 white-1">
                             <div className="wrapper-text">
                                 <h1 className="fs--80 text-center">{headline}</h1>
-                                <p className="fs--21 text-center">
-                                    {description}
-                                </p>
-                                <button data-scrollto="#footer" className="btn-1">
-                                    <span>{ctaButtonLabel}</span>
-                                </button>
-                            </div>
-                            <div className="wrapper-img">
-                                <div className="content-img container-video-player no-mobile">
-                                    <button className="btn-open-video">
-                                        <div className="blur-mask"></div>
-                                        <div className="chat-message">
-                                            <i className="icon-close"></i>
-                                            <div className="content-text">
-                                                <i className="icon-star"></i>
-                                                <div className="container-text">
-                                                    <div className="message-title">
-                                                        <h3>{presentationPopupTitle}</h3>
-                                                    </div>
-                                                    <p>
-                                                        {presentationPopupDescription}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="btn-view">
-                                                <span>{presentationPopupButtonLabel}</span>
-                                            </div>
-                                        </div>
-                                        <div className="play">
-                                            <i className="icon-play"></i>
-                                        </div>
-                                        <div className="container-img">
-                                            <img src={presentationImageURL} className="media  " />
-                                        </div>
-                                    </button>
-                                    <button className="btn-close-video">
-                                        <i className="icon-close"></i>
-                                    </button>
-                                    <div className="wrapper-plyr">
-                                        <div className="container-video container-plyr">
-                                            <div className="video-player">
-                                                <iframe
-                                                    src={presentationVideoUrl || presentationVideoURLModal}
-                                                    allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media"
-                                                    title="Blueprint Studios - Formula One Las Vegas Grand Prix Unveiled"></iframe>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <btn-modal-open template="video" data-href={presentationVideoURLModal} class="content-img no-desktop">
-                                    <div className="blur-mask"></div>
-                                    <div className="chat-message">
-                                        <i className="icon-close"></i>
-                                        <div className="content-text">
-                                            <i className="icon-star"></i>
-                                            <div className="container-text">
-                                                <div className="message-title">
-                                                    <h3>{presentationPopupTitle}</h3>
-                                                </div>
-                                                <p>
-                                                    {presentationPopupDescription}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="btn-view">
-                                            <span>{presentationPopupButtonLabel}</span>
-                                        </div>
-                                    </div>
-                                    <div className="play">
-                                        <i className="icon-play"></i>
-                                    </div>
-                                    <div className="container-img">
-                                        <img src={presentationImageURL} className="media  " />
-                                    </div>
-                                </btn-modal-open>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bg-white">
-                        <div className="bg"></div>
-                    </div>
-                </div>
-                <div className="container-fluid container-2">
-                    <div className="row">
-                        <div className="col-12 column-1">
-                            <div className="wrapper-column-sticky">
-                                <h3 className="strong-fw-600 fs--28 black-1 text-center" data-parallax
-                                    data-trigger=".section-features .container-fluid" data-translate-y="-50rem"
-                                    data-tablet-translate-y="-30rem" data-phone-translate-y="-20rem"
-                                    data-end="bottom bottom">
-                                    {parse(stickyMessagesTitle)}
-                                </h3>
-                                <div className="wrapper-lines" data-parallax
-                                    data-trigger=".section-features .container-fluid" data-translate-y="-50rem"
-                                    data-tablet-translate-y="-30rem" data-phone-translate-y="-20rem"
-                                    data-end="bottom bottom">
-                                    {stickyMessagesData.map((item, index) => {
-                                        const { title } = item;
-                                        return (
-                                            <div key={title} className={`container-line container-line-${index + 1}`}>
-                                                <div className="line">
-                                                    <span className="text">{title}</span>
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
-                                </div>
                             </div>
                         </div>
                     </div>

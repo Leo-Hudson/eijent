@@ -1,5 +1,4 @@
 "use client";
-import { CustomLink } from './CustomLink';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -17,7 +16,7 @@ const schema = yup.object({
 }).required();
 
 export const Footer = ({ data }) => {
-    const { socialLinks, copyright, emailPlaceholder, poweredBy, companyPlaceholder, rolePlaceholder, firstNamePlaceholder, buttonLabel, title, lastNamePlaceholder } = data;
+    const { copyright, emailPlaceholder, poweredBy, companyPlaceholder, rolePlaceholder, firstNamePlaceholder, buttonLabel, title, lastNamePlaceholder } = data;
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formState, setFormState] = useState();
     const [feedbackMessage, SetFeedbackMessage] = useState();
@@ -39,7 +38,7 @@ export const Footer = ({ data }) => {
             updatedWatched();
             setTimeout(() => {
                 reset();
-                resetStates();
+                resetStates(true);
             }, 2e3);
         } catch (error) {
             logError(error);
@@ -52,15 +51,17 @@ export const Footer = ({ data }) => {
         }
     };
 
-    const resetStates = () => {
+    const resetStates = (resetFormAnimations = false) => {
         setIsSubmitting(false);
         setFormState(null);
         SetFeedbackMessage(null);
         updatedWatched();
 
-        setTimeout(() => {
-            resetFormAnimations();
-        }, 500);
+        if (resetFormAnimations) {
+            setTimeout(() => {
+                resetFormAnimations();
+            }, 500);
+        }
     }
 
     return (
@@ -123,17 +124,7 @@ export const Footer = ({ data }) => {
                                 </div>
                             </form>
                             {feedbackMessage && (<h3 className="feedback-sign-up" data-aos="fadeIn">{feedbackMessage}</h3>)}
-
                         </div>
-                        <ul className="list-social-media">
-                            {socialLinks.map(({ title, link, iconClassName }) => (
-                                <li key={title}>
-                                    <CustomLink to={link} className="link-social-media" target="_blank" rel="noopener noreferrer">
-                                        <i className={iconClassName}></i>
-                                    </CustomLink>
-                                </li>
-                            ))}
-                        </ul>
                     </div>
                 </div>
                 <div className="row row-2">

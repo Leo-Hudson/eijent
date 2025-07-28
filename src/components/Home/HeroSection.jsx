@@ -8,7 +8,6 @@ export const HeroSection = ({ data = {}, pageData = {} }) => {
     const { logoAnimation } = pageData;
     const logoURL = generateVideoURL(logoAnimation);
     const isMobile = useMobile();
-    console.log("isMobile", isMobile);
 
     return (
         <div className="wrapper-sticky">

@@ -38,7 +38,7 @@ export const Footer = ({ data }) => {
             updatedWatched();
             setTimeout(() => {
                 reset();
-                resetStates();
+                resetStates(true);
             }, 2e3);
         } catch (error) {
             logError(error);
@@ -51,15 +51,17 @@ export const Footer = ({ data }) => {
         }
     };
 
-    const resetStates = () => {
+    const resetStates = (resetFormAnimations = false) => {
         setIsSubmitting(false);
         setFormState(null);
         SetFeedbackMessage(null);
         updatedWatched();
 
-        setTimeout(() => {
-            resetFormAnimations();
-        }, 500);
+        if (resetFormAnimations) {
+            setTimeout(() => {
+                resetFormAnimations();
+            }, 500);
+        }
     }
 
     return (

@@ -1,25 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    reactStrictMode: false,
-    logging: {
-        fetches: {
-            fullUrl: true,
-        },
-    },
-    env: {
-        BASE_URL: process.env.BASE_URL,
-        CLIENT_ID_WIX: process.env.CLIENT_ID_WIX,
-        CLIENT_SITE_ID_WIX: process.env.CLIENT_SITE_ID_WIX,
-        CLIENT_API_KEY_WIX: process.env.CLIENT_API_KEY_WIX,
-        DEBUG_LOGS: process.env.DEBUG_LOGS,
-        REVALIDATE_TOKEN: process.env.REVALIDATE_TOKEN,
-        REVALIDATE_TIME: process.env.REVALIDATE_TIME
-    },
-    experimental: {
-        serverActions: {
-            bodySizeLimit: '10mb',
-        },
-    },
+  reactStrictMode: true,
 };
 
-export default nextConfig;  
+export default nextConfig;

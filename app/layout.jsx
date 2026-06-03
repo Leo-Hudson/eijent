@@ -1,7 +1,9 @@
 import './globals.css';
 import { Manrope, Inter, JetBrains_Mono } from 'next/font/google';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import SiteNav from '@/components/SiteNav';
 import Behaviors from '@/components/Behaviors';
+import { SITE_URL, isProduction } from '@/lib/seo';
 
 const manrope = Manrope({
   subsets: ['latin'],
@@ -24,7 +26,6 @@ const jetbrainsMono = JetBrains_Mono({
   display: 'swap',
 });
 
-const SITE_URL = 'https://eijent.com';
 const TITLE = 'Eijent — Run your company as a system';
 const DESCRIPTION =
   'Eijent is the AI-first operational platform for modern revenue teams. One system for data, pipelines, workflows, AI, and the real-world signals captured by Pulse. Currently invite-only.';
@@ -34,6 +35,9 @@ export const metadata = {
   title: TITLE,
   description: DESCRIPTION,
   alternates: { canonical: '/' },
+  // Keep preview/staging deploys out of search results. Production is gated
+  // on ENVIRONMENT=PRODUCTION (or Vercel's production deployment).
+  robots: isProduction ? undefined : { index: false, follow: false },
   openGraph: {
     type: 'website',
     url: SITE_URL,
@@ -71,6 +75,7 @@ export default function RootLayout({ children }) {
         <SiteNav />
         <main id="main">{children}</main>
         <Behaviors />
+        <SpeedInsights />
       </body>
     </html>
   );

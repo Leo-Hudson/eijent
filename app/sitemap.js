@@ -1,4 +1,4 @@
-const SITE_URL = 'https://eijent.com';
+import { SITE_URL } from '@/lib/seo';
 
 export const dynamic = 'force-static';
 

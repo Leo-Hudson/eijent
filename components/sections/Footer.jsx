@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 const Footer = () => (
   <footer className="foot">
     <div className="container">
@@ -7,15 +9,15 @@ const Footer = () => (
           Eijent
         </div>
         <div className="foot__links">
-          <a href="#architecture">System</a>
-          <a href="#pipelines">Pipelines</a>
-          <a href="#ai">AI</a>
-          <a href="#pulse">Pulse</a>
-          <a href="#cases">Use cases</a>
+          <a href="/#architecture">System</a>
+          <a href="/#pipelines">Pipelines</a>
+          <a href="/#ai">AI</a>
+          <a href="/#pulse">Pulse</a>
+          <a href="/#cases">Use cases</a>
         </div>
         <div className="foot__links">
-          <a href="#">Privacy</a>
-          <a href="#">Terms</a>
+          <Link href="/privacy-policy">Privacy Policy</Link>
+          <Link href="/terms-of-use">Terms of Use</Link>
           <a href="mailto:hello@eijent.app">hello@eijent.app</a>
         </div>
       </div>

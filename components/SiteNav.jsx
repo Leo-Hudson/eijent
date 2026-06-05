@@ -3,12 +3,14 @@ import React from 'react';
 
 const NAV_SECTIONS = ['architecture', 'pipelines', 'ai', 'pulse', 'cases'];
 
+// Root-relative hashes so the links also work from sub-pages (e.g. /privacy-policy);
+// on the home page the browser just scrolls to the anchor.
 const NAV_LINKS = [
-  { href: '#architecture', label: 'System' },
-  { href: '#pipelines', label: 'Pipelines' },
-  { href: '#ai', label: 'AI' },
-  { href: '#pulse', label: 'Pulse' },
-  { href: '#cases', label: 'Use cases' },
+  { href: '/#architecture', label: 'System' },
+  { href: '/#pipelines', label: 'Pipelines' },
+  { href: '/#ai', label: 'AI' },
+  { href: '/#pulse', label: 'Pulse' },
+  { href: '/#cases', label: 'Use cases' },
 ];
 
 const SiteNav = () => {
@@ -47,7 +49,7 @@ const SiteNav = () => {
 
       {/* Floating nav */}
       <nav className="nav-pill" aria-label="Primary">
-        <a href="#" className="nav-pill__brand" aria-label="Eijent home">
+        <a href="/" className="nav-pill__brand" aria-label="Eijent home">
           <span className="nav-pill__brand-mark">
             <video autoPlay muted loop playsInline poster="/assets/mark-static.png" aria-hidden="true">
               <source src="/assets/mark-animation.webm" type="video/webm" />
@@ -60,12 +62,12 @@ const SiteNav = () => {
         <div className="nav-pill__links">
           {NAV_LINKS.map(l => (
             <a key={l.href} href={l.href}
-               className={'nav-pill__link' + (active === l.href.slice(1) ? ' is-active' : '')}>
+               className={'nav-pill__link' + (active === l.href.split('#')[1] ? ' is-active' : '')}>
               {l.label}
             </a>
           ))}
         </div>
-        <a href="#waitlist" className="nav-pill__cta">Join waitlist</a>
+        <a href="/#waitlist" className="nav-pill__cta">Join waitlist</a>
         <button className="nav-pill__menu-btn" aria-label="Open menu" onClick={() => setMenuOpen(true)}>
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 5h12M3 9h12M3 13h12"/></svg>
         </button>
@@ -80,7 +82,7 @@ const SiteNav = () => {
           {NAV_LINKS.map(l => (
             <a key={l.href} href={l.href} className="mobile-menu__link" onClick={() => setMenuOpen(false)}>{l.label}</a>
           ))}
-          <a href="#waitlist" className="mobile-menu__cta" onClick={() => setMenuOpen(false)}>Join the waitlist</a>
+          <a href="/#waitlist" className="mobile-menu__cta" onClick={() => setMenuOpen(false)}>Join the waitlist</a>
         </div>
       </div>
     </>

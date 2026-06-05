@@ -70,7 +70,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${manrope.variable} ${inter.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" data-scroll-behavior="smooth" className={`${manrope.variable} ${inter.variable} ${jetbrainsMono.variable}`}>
       <body>
         <SiteNav />
         <main id="main">{children}</main>

@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import { usePathname } from 'next/navigation';
 
 const NAV_SECTIONS = ['architecture', 'pipelines', 'ai', 'pulse', 'cases'];
 
@@ -12,8 +13,18 @@ const NAV_LINKS = [
 ];
 
 const SiteNav = () => {
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [active, setActive] = React.useState(null);
+
+  // Standalone auth / app flows stay off the marketing nav (direct URL only).
+  if (
+    pathname?.startsWith('/signup') ||
+    pathname?.startsWith('/login') ||
+    pathname?.startsWith('/dashboard')
+  ) {
+    return null;
+  }
 
   // Lock scroll while the mobile menu is open + close on Escape.
   React.useEffect(() => {

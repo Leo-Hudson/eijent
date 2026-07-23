@@ -31,7 +31,10 @@ export const POST = async (req) => {
       const detail = String(data?.errors?.[0]?.message || data?.message || '').toLowerCase();
       if (status === 403 && detail.includes('pending')) {
         return NextResponse.json(
-          { error: 'Your account is pending verification.' },
+          {
+            error:
+              'Your account is pending review. You will be able to sign in after an admin approves it.',
+          },
           { status: 403 },
         );
       }

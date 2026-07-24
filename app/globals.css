@@ -2234,8 +2234,7 @@ a.signup-submit {
   font-weight: 600;
   color: var(--fg-soft);
 }
-.ledger-filters input,
-.ledger-filters select {
+.ledger-filters input[type='search'] {
   height: 40px;
   padding: 0 10px;
   border-radius: var(--r-md);
@@ -2254,6 +2253,131 @@ a.signup-submit {
   align-items: flex-end;
   gap: 8px;
 }
+
+/* Ledger select (Radix) */
+.ledger-select-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  height: 40px;
+  padding: 0 10px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--ink-900);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+}
+.ledger-select-trigger:hover { border-color: var(--ink-200); }
+.ledger-select-trigger:focus-visible {
+  outline: 2px solid var(--ink-900);
+  outline-offset: 1px;
+}
+.ledger-select-trigger[data-disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.ledger-select-icon {
+  display: inline-flex;
+  color: var(--ink-400);
+  flex-shrink: 0;
+}
+.ledger-select-content {
+  z-index: 60;
+  overflow: hidden;
+  min-width: var(--radix-select-trigger-width);
+  max-height: min(320px, var(--radix-select-content-available-height));
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--white);
+  box-shadow: 0 12px 32px rgba(10, 10, 20, 0.12);
+}
+.ledger-select-viewport {
+  padding: 6px;
+}
+.ledger-select-item {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-900);
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+.ledger-select-item[data-highlighted] {
+  background: var(--ink-50);
+}
+.ledger-select-item[data-state='checked'] {
+  font-weight: 650;
+}
+
+/* Ledger date field */
+.ledger-date-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  height: 40px;
+  padding: 0 10px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--ink-900);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+}
+.ledger-date-trigger.is-empty { color: var(--ink-400); }
+.ledger-date-trigger:hover { border-color: var(--ink-200); }
+.ledger-date-trigger:focus-visible {
+  outline: 2px solid var(--ink-900);
+  outline-offset: 1px;
+}
+.ledger-date-popover {
+  z-index: 60;
+  padding: 10px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--white);
+  box-shadow: 0 12px 32px rgba(10, 10, 20, 0.12);
+}
+.ledger-date-popover .rdp-root {
+  --rdp-accent-color: var(--ink-900);
+  --rdp-accent-background-color: var(--ink-50);
+  --rdp-day-height: 36px;
+  --rdp-day-width: 36px;
+  margin: 0;
+  font-size: 13px;
+}
+.ledger-date-popover__footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-soft);
+  margin-top: 6px;
+}
+.ledger-date-clear {
+  height: 28px;
+  padding: 0 10px;
+  border: none;
+  background: transparent;
+  color: var(--ink-500);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ledger-date-clear:hover:not(:disabled) { color: var(--ink-900); }
+.ledger-date-clear:disabled { opacity: 0.4; cursor: default; }
 .ledger-chips {
   list-style: none;
   margin: 0;
@@ -2284,6 +2408,14 @@ a.signup-submit {
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   background: rgba(255, 255, 255, 0.96);
+  position: relative;
+}
+.ledger-table-wrap.is-loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.45);
+  pointer-events: none;
 }
 .ledger-table {
   width: 100%;
@@ -2316,6 +2448,23 @@ a.signup-submit {
   font-weight: 700;
   white-space: nowrap;
 }
+.ledger-date {
+  white-space: nowrap;
+  min-width: 7.5rem;
+}
+.ledger-date__day {
+  display: block;
+  font-weight: 600;
+  color: var(--ink-900);
+  line-height: 1.25;
+}
+.ledger-date__time {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--ink-400);
+  line-height: 1.25;
+}
 .ledger-empty {
   text-align: center;
   color: var(--fg-mute);
@@ -2330,6 +2479,18 @@ a.signup-submit {
 .ledger-user__email {
   font-size: 11px;
   color: var(--ink-400);
+}
+.ledger-owner-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--ink-50);
+  border: 1px solid var(--border);
+  font-size: 10px;
+  font-weight: 650;
+  color: var(--ink-500);
+  vertical-align: middle;
 }
 .ledger-ref {
   max-width: 12rem;

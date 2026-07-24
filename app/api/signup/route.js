@@ -9,9 +9,11 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const signupSchema = yup.object({
   companyName: yup.string().trim().required().min(2),
+  accountName: yup.string().trim().required().min(2),
   firstName: yup.string().trim().required().min(1),
   lastName: yup.string().trim().required().min(1),
   email: yup.string().trim().required().matches(EMAIL_RE),
+  phone: yup.string().trim().required().min(7),
   password: yup.string().required().min(8),
 });
 
@@ -99,7 +101,7 @@ const mapMemberCreateError = (status, detail) => {
   return { status: 502, error: 'Failed to create account. Please try again.' };
 };
 
-const pendingReviewResponse = ({ member, companyName, message }) =>
+const pendingReviewResponse = ({ member, companyName, accountName, message }) =>
   NextResponse.json({
     success: true,
     pendingReview: true,
@@ -110,6 +112,8 @@ const pendingReviewResponse = ({ member, companyName, message }) =>
     member: {
       id: member?.id,
       companyName,
+      accountName,
+      phone: member?.phone,
       firstName: member?.firstName,
       lastName: member?.lastName,
       email: member?.email,
@@ -153,6 +157,10 @@ export const POST = async (req) => {
             method: 'PATCH',
             headers: coreHeaders(),
             body: JSON.stringify({
+              phone: clean.phone,
+              companyName: clean.companyName,
+              accountName: clean.accountName,
+              // Keep legacy metadata key in sync for older admin views until fully migrated.
               metadata: {
                 ...existingMeta,
                 companyName: clean.companyName,
@@ -161,13 +169,14 @@ export const POST = async (req) => {
           });
         } catch (patchErr) {
           if (process.env.DEBUG_LOGS === '1') {
-            console.warn('[signup] company refresh skipped', patchErr);
+            console.warn('[signup] profile refresh skipped', patchErr);
           }
         }
 
         return pendingReviewResponse({
-          member: { ...existing, status: 'Pending' },
+          member: { ...existing, status: 'Pending', phone: clean.phone },
           companyName: clean.companyName,
+          accountName: clean.accountName,
           message:
             'Your account is still pending review. We updated your details. You will be able to sign in after an admin assigns a plan and approves it.',
         });
@@ -190,8 +199,12 @@ export const POST = async (req) => {
         password: clean.password,
         firstName: clean.firstName,
         lastName: clean.lastName,
+        phone: clean.phone,
+        companyName: clean.companyName,
+        accountName: clean.accountName,
         tenant: CORE_TENANT_ID,
         status: 'Pending',
+        // Keep legacy metadata key for older tooling during transition.
         metadata: {
           companyName: clean.companyName,
         },
@@ -238,9 +251,11 @@ export const POST = async (req) => {
         email: clean.email,
         firstName: clean.firstName,
         lastName: clean.lastName,
+        phone: clean.phone,
         status: member?.status || 'Pending',
       },
       companyName: clean.companyName,
+      accountName: clean.accountName,
     });
   } catch (error) {
     if (process.env.DEBUG_LOGS === '1') console.error('[signup]', error);

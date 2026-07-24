@@ -11,6 +11,11 @@ const detailsSchema = yup.object({
     .trim()
     .required('Company name is required.')
     .min(2, 'Company name must be at least 2 characters.'),
+  accountName: yup
+    .string()
+    .trim()
+    .required('Account name is required.')
+    .min(2, 'Account name must be at least 2 characters.'),
   firstName: yup
     .string()
     .trim()
@@ -26,6 +31,11 @@ const detailsSchema = yup.object({
     .trim()
     .required('Work email is required.')
     .matches(EMAIL_RE, 'Please enter a valid work email.'),
+  phone: yup
+    .string()
+    .trim()
+    .required('Phone number is required.')
+    .min(7, 'Please enter a valid phone number.'),
   password: yup
     .string()
     .required('Password is required.')
@@ -38,9 +48,11 @@ const detailsSchema = yup.object({
 
 const INITIAL = {
   companyName: '',
+  accountName: '',
   firstName: '',
   lastName: '',
   email: '',
+  phone: '',
   password: '',
   confirmPassword: '',
 };
@@ -92,9 +104,11 @@ const SignupForm = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           companyName: values.companyName,
+          accountName: values.accountName,
           firstName: values.firstName,
           lastName: values.lastName,
           email: values.email,
+          phone: values.phone,
           password: values.password,
         }),
       });
@@ -153,7 +167,7 @@ const SignupForm = () => {
 
       <form className="signup-form signup-step-panel" onSubmit={submitSignup} noValidate>
         <div className="signup-field">
-          <label htmlFor="companyName">Company name</label>
+          <label htmlFor="companyName">Company</label>
           <input
             id="companyName"
             name="companyName"
@@ -168,6 +182,26 @@ const SignupForm = () => {
           {fieldErrors.companyName && (
             <p className="signup-field-error" id="err-companyName" role="alert">
               {fieldErrors.companyName}
+            </p>
+          )}
+        </div>
+
+        <div className="signup-field">
+          <label htmlFor="accountName">Account name</label>
+          <input
+            id="accountName"
+            name="accountName"
+            type="text"
+            autoComplete="organization"
+            placeholder="Acme workspace"
+            value={values.accountName}
+            onChange={onChange}
+            aria-invalid={!!fieldErrors.accountName}
+            aria-describedby={fieldErrors.accountName ? 'err-accountName' : undefined}
+          />
+          {fieldErrors.accountName && (
+            <p className="signup-field-error" id="err-accountName" role="alert">
+              {fieldErrors.accountName}
             </p>
           )}
         </div>
@@ -214,7 +248,7 @@ const SignupForm = () => {
         </div>
 
         <div className="signup-field">
-          <label htmlFor="email">Work email</label>
+          <label htmlFor="email">E-mail</label>
           <input
             id="email"
             name="email"
@@ -229,6 +263,26 @@ const SignupForm = () => {
           {fieldErrors.email && (
             <p className="signup-field-error" id="err-email" role="alert">
               {fieldErrors.email}
+            </p>
+          )}
+        </div>
+
+        <div className="signup-field">
+          <label htmlFor="phone">Phone number</label>
+          <input
+            id="phone"
+            name="phone"
+            type="tel"
+            autoComplete="tel"
+            placeholder="+1 555 0100"
+            value={values.phone}
+            onChange={onChange}
+            aria-invalid={!!fieldErrors.phone}
+            aria-describedby={fieldErrors.phone ? 'err-phone' : undefined}
+          />
+          {fieldErrors.phone && (
+            <p className="signup-field-error" id="err-phone" role="alert">
+              {fieldErrors.phone}
             </p>
           )}
         </div>

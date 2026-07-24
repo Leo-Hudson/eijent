@@ -163,15 +163,14 @@ After approval (and the email):
 
 The landing dashboard is a member-facing summary. It shows:
 
-- Who they are / company
-- Current subscription and plan
-- Included modules
-- Max limits from the service plan (caps, not “how many they already used”)
-- Credit balance / usage summary
+- Account owner profile
+- Current subscription and plan, plus a seats / workspaces / modules / credits summary
+- Module cards and limit progress bars (used / max when the product has synced usage)
+- Credit balance, usage by user and by service
 - Sub-accounts (if any)
 - Link to the **credit ledger** (full credit history)
 
-See [member-dashboard.md](./member-dashboard.md) for the detailed dashboard breakdown and the open question about used vs max.
+See [member-dashboard.md](./member-dashboard.md) for the detailed dashboard breakdown.
 
 **Go to app** on the dashboard is still a placeholder until the main Eijent web app entry is ready.
 

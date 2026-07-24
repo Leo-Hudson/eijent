@@ -52,6 +52,24 @@ const fetchCreditUsage = async (memberId) => {
   if (!res.ok) return null;
   const data = await res.json().catch(() => null);
   if (!data) return null;
+
+  const byFeatureMap = {};
+  const addFeatures = (src) => {
+    if (!src || typeof src !== 'object') return;
+    for (const [key, amount] of Object.entries(src)) {
+      const n = Number(amount) || 0;
+      if (!key || n <= 0) continue;
+      byFeatureMap[key] = (byFeatureMap[key] || 0) + n;
+    }
+  };
+  addFeatures(data?.owner?.byFeature);
+  if (Array.isArray(data.bySubAccount)) {
+    for (const b of data.bySubAccount) addFeatures(b?.byFeature);
+  }
+  const byFeature = Object.entries(byFeatureMap)
+    .map(([key, deducted]) => ({ key, deducted }))
+    .sort((a, b) => b.deducted - a.deducted);
+
   return {
     balance: typeof data.currentBalance === 'number' ? data.currentBalance : null,
     allocation: typeof data.allocation === 'number' ? data.allocation : null,
@@ -72,6 +90,7 @@ const fetchCreditUsage = async (memberId) => {
           transactions: b.transactions || 0,
         }))
       : [],
+    byFeature,
   };
 };
 
@@ -94,6 +113,9 @@ const fetchEntitlements = async (memberId) => {
           module: l.module || null,
           unlimited: Boolean(l.unlimited),
           limit: typeof l.limit === 'number' ? l.limit : null,
+          used: typeof l.used === 'number' ? l.used : null,
+          remaining: typeof l.remaining === 'number' ? l.remaining : null,
+          status: l.status || null,
           custom: Boolean(l.custom),
         }))
     : [];
@@ -105,6 +127,7 @@ const fetchEntitlements = async (memberId) => {
     servicePlan: data.servicePlan || null,
     modules: Array.isArray(data.modules) ? data.modules : [],
     limits,
+    usageCountsUpdatedAt: data.usageCountsUpdatedAt || null,
     credits: data.credits
       ? {
           balance: typeof data.credits.balance === 'number' ? data.credits.balance : null,

@@ -18,6 +18,11 @@ const prettyStatus = (s) =>
 const prettyCycle = (s) =>
   s ? s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : null;
 
+const prettyFeatureKey = (key) =>
+  String(key || '')
+    .replace(/[._]/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+
 const formatMoney = (price, currency) => {
   if (price == null) return null;
   try {
@@ -37,57 +42,30 @@ const formatDate = (iso) => {
   return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
-const formatLimitCap = (row) => {
-  if (!row) return 'Included';
-  if (row.unlimited) return 'Unlimited';
-  if (typeof row.limit === 'number') return row.limit.toLocaleString();
-  return 'Included';
+const findLimit = (limits, field) => limits.find((l) => l.field === field) || null;
+
+const limitProgressPct = (limit) => {
+  if (!limit || limit.unlimited || typeof limit.limit !== 'number' || limit.limit <= 0) return null;
+  if (typeof limit.used !== 'number') return null;
+  return Math.min(100, Math.round((limit.used / limit.limit) * 100));
 };
 
-/**
- * Build table rows: each enabled module + its limit(s), plus standalone
- * limits that are not tied to a module (e.g. team members).
- */
-const buildModuleLimitRows = (modules, limits) => {
-  const rows = [];
-  const usedLimitKeys = new Set();
+const limitStatusClass = (status) => {
+  if (status === 'warning') return 'is-warn';
+  if (status === 'reached' || status === 'exceeded') return 'is-bad';
+  return '';
+};
 
-  for (const mod of modules) {
-    const matched = limits.filter((l) => l.module === mod);
-    if (matched.length === 0) {
-      rows.push({
-        key: mod,
-        module: mod,
-        limitLabel: null,
-        cap: 'Included',
-      });
-      continue;
-    }
-    matched.forEach((limit, idx) => {
-      const key = limit.field || `${mod}-${idx}`;
-      usedLimitKeys.add(key);
-      rows.push({
-        key,
-        module: mod,
-        limitLabel: limit.label || null,
-        cap: formatLimitCap(limit),
-      });
-    });
+const formatUsedMax = (limit) => {
+  if (!limit) return '—';
+  if (limit.unlimited) {
+    return typeof limit.used === 'number' ? `${limit.used.toLocaleString()} / Unlimited` : 'Unlimited';
   }
-
-  for (const limit of limits) {
-    const key = limit.field || limit.label;
-    if (usedLimitKeys.has(key)) continue;
-    if (limit.module && modules.includes(limit.module)) continue;
-    rows.push({
-      key,
-      module: limit.module || limit.label || 'Plan limit',
-      limitLabel: limit.module ? limit.label : null,
-      cap: formatLimitCap(limit),
-    });
+  if (typeof limit.limit !== 'number') return '—';
+  if (typeof limit.used === 'number') {
+    return `${limit.used.toLocaleString()} / ${limit.limit.toLocaleString()}`;
   }
-
-  return rows;
+  return `— / ${limit.limit.toLocaleString()}`;
 };
 
 const initials = (m) =>
@@ -167,12 +145,21 @@ const Dashboard = () => {
       : credits?.allocation != null
         ? credits.allocation
         : null;
+  const totalDeducted = credits?.totalDeducted || 0;
   const hasCredits =
-    balance != null ||
-    (credits && (credits.totalDeducted > 0 || credits.bySubAccount?.length));
+    balance != null || totalDeducted > 0 || (credits?.bySubAccount || []).length > 0;
   const modules = entitlements?.modules || [];
   const limits = entitlements?.limits || [];
-  const moduleLimitRows = buildModuleLimitRows(modules, limits);
+  const cappedLimits = limits.filter((l) => !l.unlimited && typeof l.limit === 'number');
+  const seatsLimit = findLimit(limits, 'maxTeamMembers');
+  const workspacesLimit = findLimit(limits, 'maxWorkspaces');
+  const primarySub = subscriptions[0] || null;
+  const ownerName =
+    `${member?.firstName || ''} ${member?.lastName || ''}`.trim() || member?.email || 'Owner';
+  const ownerStatusTone =
+    member?.status === 'Active' ? 'is-good' : member?.status === 'Suspended' ? 'is-bad' : 'is-warn';
+  const byFeature = credits?.byFeature || [];
+  const featureTotal = byFeature.reduce((sum, f) => sum + (f.deducted || 0), 0) || totalDeducted || 1;
 
   return (
     <div className="dash">
@@ -183,16 +170,13 @@ const Dashboard = () => {
             <p className="dash-hello">
               {member?.firstName ? `Hi, ${member.firstName}` : 'Welcome'}
             </p>
-            {member?.companyName && <p className="dash-company">{member.companyName}</p>}
           </div>
         </div>
         <div className="dash-top__actions">
-          <button
-            type="button"
-            className="dash-go-app"
-            title="Coming soon"
-            onClick={() => {}}
-          >
+          <a href="/dashboard/ledger" className="dash-go-app dash-go-app--ghost">
+            Credit ledger
+          </a>
+          <button type="button" className="dash-go-app" title="Coming soon" onClick={() => {}}>
             Go to app
           </button>
           <button type="button" className="dash-signout" onClick={signOut} disabled={signingOut}>
@@ -203,58 +187,180 @@ const Dashboard = () => {
 
       <section className="dash-card">
         <div className="dash-card__head">
+          <h2 className="dash-card__title">Account owner</h2>
+          {member?.status ? (
+            <span className={'dash-badge ' + ownerStatusTone}>{member.status}</span>
+          ) : null}
+        </div>
+        <div className="dash-owner">
+          <div className="dash-owner__identity">
+            <div>
+              <p className="dash-owner__name">{ownerName}</p>
+              <p className="dash-owner__role">Organization owner</p>
+            </div>
+          </div>
+          <dl className="dash-owner__grid">
+            <div>
+              <dt>Email</dt>
+              <dd className="mono">{member?.email || '—'}</dd>
+            </div>
+            <div>
+              <dt>Phone</dt>
+              <dd>{member?.phone || '—'}</dd>
+            </div>
+            <div>
+              <dt>Account name</dt>
+              <dd>{member?.accountName || '—'}</dd>
+            </div>
+            <div>
+              <dt>Company</dt>
+              <dd>{member?.companyName || '—'}</dd>
+            </div>
+            <div>
+              <dt>Team size</dt>
+              <dd>
+                {1 + subAccounts.length}{' '}
+                {1 + subAccounts.length === 1 ? 'person' : 'people'}
+                {subAccounts.length > 0
+                  ? ` · ${subAccounts.length} sub-account${subAccounts.length === 1 ? '' : 's'}`
+                  : ''}
+              </dd>
+            </div>
+            <div>
+              <dt>Credits available</dt>
+              <dd>
+                {balance != null ? balance.toLocaleString() : '—'}
+                {allocation != null ? ` / ${allocation.toLocaleString()}` : ''}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <section className="dash-card">
+        <div className="dash-card__head">
           <h2 className="dash-card__title">Subscription</h2>
         </div>
         {subscriptions.length === 0 ? (
-          <p className="dash-empty">No active plan yet.</p>
+          <p className="dash-empty">No active subscription found.</p>
         ) : (
-          <ul className="dash-sub-list">
-            {subscriptions.map((sub) => {
-              const money = formatMoney(sub.price, sub.currency);
-              const tone = STATUS_TONE[sub.status] || 'is-warn';
-              const serviceName =
-                sub.servicePlanName || entitlements?.servicePlan?.name || null;
+          <>
+            <ul className="dash-sub-list">
+              {subscriptions.map((sub) => {
+                const money = formatMoney(sub.price, sub.currency);
+                const tone = STATUS_TONE[sub.status] || 'is-warn';
+                const serviceName =
+                  sub.servicePlanName || entitlements?.servicePlan?.name || null;
+                return (
+                  <li key={sub.id} className="dash-sub">
+                    <div className="dash-sub__main">
+                      <span className="dash-sub__plan">{sub.planName}</span>
+                      <span className={'dash-badge ' + tone}>{prettyStatus(sub.status)}</span>
+                    </div>
+                    <div className="dash-sub__meta">
+                      {serviceName && <span>Service plan: {serviceName}</span>}
+                      {money && (
+                        <span>
+                          {money}
+                          {sub.billingCycle && sub.billingCycle !== 'one_time'
+                            ? ` / ${sub.billingCycle.replace('ly', '')}`
+                            : ''}
+                        </span>
+                      )}
+                      <span>Payment: {prettyStatus(sub.paymentStatus)}</span>
+                      {formatDate(sub.startDate) && (
+                        <span>Started: {formatDate(sub.startDate)}</span>
+                      )}
+                      {formatDate(sub.nextBillingDate) && (
+                        <span>Next billing: {formatDate(sub.nextBillingDate)}</span>
+                      )}
+                      {(sub.creditResetCycle || wallet?.resetCycle) && (
+                        <span>
+                          Reset: {prettyCycle(sub.creditResetCycle || wallet?.resetCycle)}
+                          {formatDate(sub.nextCreditResetAt || wallet?.nextResetAt)
+                            ? ` · next ${formatDate(sub.nextCreditResetAt || wallet?.nextResetAt)}`
+                            : ''}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <div className="dash-summary">
+              <div className="dash-summary__item">
+                <span className="dash-summary__label">Monthly credits</span>
+                <span className="dash-summary__value">
+                  {allocation != null ? allocation.toLocaleString() : '—'}
+                </span>
+              </div>
+              <div className="dash-summary__item">
+                <span className="dash-summary__label">Credits left</span>
+                <span className="dash-summary__value">
+                  {balance != null ? balance.toLocaleString() : '—'}
+                </span>
+              </div>
+              <div className="dash-summary__item">
+                <span className="dash-summary__label">Seats</span>
+                <span className="dash-summary__value">{formatUsedMax(seatsLimit)}</span>
+                <span className="dash-summary__hint">
+                  {1 + subAccounts.length} on account now
+                </span>
+              </div>
+              <div className="dash-summary__item">
+                <span className="dash-summary__label">Workspaces</span>
+                <span className="dash-summary__value">{formatUsedMax(workspacesLimit)}</span>
+              </div>
+              <div className="dash-summary__item">
+                <span className="dash-summary__label">Active modules</span>
+                <span className="dash-summary__value">{modules.length}</span>
+              </div>
+              <div className="dash-summary__item">
+                <span className="dash-summary__label">Billing cycle</span>
+                <span className="dash-summary__value">
+                  {prettyCycle(primarySub?.billingCycle) || '—'}
+                </span>
+                {formatDate(primarySub?.nextBillingDate) ? (
+                  <span className="dash-summary__hint">
+                    Renews {formatDate(primarySub.nextBillingDate)}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          </>
+        )}
+      </section>
+
+      <section className={'dash-card' + (modules.length ? '' : ' dash-card--muted')}>
+        <div className="dash-card__head">
+          <h2 className="dash-card__title">Modules</h2>
+          <span className="dash-count">{modules.length}</span>
+        </div>
+        {modules.length === 0 ? (
+          <p className="dash-empty">Modules will appear once your plan is assigned.</p>
+        ) : (
+          <ul className="dash-module-grid">
+            {modules.map((mod) => {
+              const modLimits = limits.filter((l) => l.module === mod);
               return (
-                <li key={sub.id} className="dash-sub">
-                  <div className="dash-sub__main">
-                    <span className="dash-sub__plan">{sub.planName}</span>
-                    <span className={'dash-badge ' + tone}>{prettyStatus(sub.status)}</span>
+                <li key={mod} className="dash-module-card">
+                  <div className="dash-module-card__top">
+                    <span className="dash-module-card__name">{mod}</span>
+                    <span className="dash-badge is-good">Enabled</span>
                   </div>
-                  <div className="dash-sub__meta">
-                    {serviceName && <span>Service plan: {serviceName}</span>}
-                    {money && (
-                      <span>
-                        {money}
-                        {sub.billingCycle && sub.billingCycle !== 'one_time'
-                          ? ` / ${sub.billingCycle.replace('ly', '')}`
-                          : ''}
-                      </span>
-                    )}
-                    <span>Payment: {prettyStatus(sub.paymentStatus)}</span>
-                    {formatDate(sub.startDate) && (
-                      <span>Started: {formatDate(sub.startDate)}</span>
-                    )}
-                    {formatDate(sub.nextBillingDate) && (
-                      <span>Next billing: {formatDate(sub.nextBillingDate)}</span>
-                    )}
-                    {(sub.creditBalance != null || balance != null) && (
-                      <span>
-                        Credits:{' '}
-                        {(sub.creditBalance != null ? sub.creditBalance : balance).toLocaleString()}
-                        {(sub.creditAllocation != null || allocation != null)
-                          ? ` / ${(sub.creditAllocation != null ? sub.creditAllocation : allocation).toLocaleString()}`
-                          : ''}
-                      </span>
-                    )}
-                    {(sub.creditResetCycle || wallet?.resetCycle) && (
-                      <span>
-                        Reset: {prettyCycle(sub.creditResetCycle || wallet?.resetCycle)}
-                        {formatDate(sub.nextCreditResetAt || wallet?.nextResetAt)
-                          ? ` · next ${formatDate(sub.nextCreditResetAt || wallet?.nextResetAt)}`
-                          : ''}
-                      </span>
-                    )}
-                  </div>
+                  {modLimits.length === 0 ? (
+                    <p className="dash-module-card__meta">Included with your plan</p>
+                  ) : (
+                    <ul className="dash-module-card__limits">
+                      {modLimits.map((l) => (
+                        <li key={l.field || l.label}>
+                          <span>{l.label}</span>
+                          <strong>{formatUsedMax(l)}</strong>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               );
             })}
@@ -262,36 +368,46 @@ const Dashboard = () => {
         )}
       </section>
 
-      <section className={'dash-card' + (moduleLimitRows.length ? '' : ' dash-card--muted')}>
+      <section className={'dash-card' + (cappedLimits.length ? '' : ' dash-card--muted')}>
         <div className="dash-card__head">
-          <h2 className="dash-card__title">Included modules</h2>
-          <span className="dash-count">{modules.length}</span>
+          <h2 className="dash-card__title">Limits</h2>
+          <span className="dash-count">{cappedLimits.length}</span>
         </div>
-        {moduleLimitRows.length === 0 ? (
-          <p className="dash-empty">Module details will appear once your plan is assigned.</p>
+        {cappedLimits.length === 0 ? (
+          <p className="dash-empty">
+            No numeric caps on this plan, or usage has not been synced from the product yet.
+          </p>
         ) : (
-          <div className="dash-modules-table-wrap">
-            <table className="dash-modules-table">
-              <thead>
-                <tr>
-                  <th>Module</th>
-                  <th>Limit</th>
-                  <th>Max</th>
-                </tr>
-              </thead>
-              <tbody>
-                {moduleLimitRows.map((row) => (
-                  <tr key={row.key}>
-                    <td>{row.module}</td>
-                    <td className="dash-modules-table__limit">
-                      {row.limitLabel || (row.cap === 'Included' ? 'Access' : 'Usage cap')}
-                    </td>
-                    <td className="dash-modules-table__max">{row.cap}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ul className="dash-limits">
+            {cappedLimits.map((limit) => {
+              const pct = limitProgressPct(limit);
+              const statusClass = limitStatusClass(limit.status);
+              return (
+                <li key={limit.field || limit.label} className={`dash-limit ${statusClass}`.trim()}>
+                  <div className="dash-limit__head">
+                    <div>
+                      <span className="dash-limit__name">{limit.label}</span>
+                      {limit.module ? (
+                        <span className="dash-limit__module">{limit.module}</span>
+                      ) : null}
+                    </div>
+                    <span className="dash-limit__ratio">{formatUsedMax(limit)}</span>
+                  </div>
+                  <div className="dash-limit__bar" aria-hidden="true">
+                    <span style={{ width: `${pct == null ? 0 : pct}%` }} />
+                  </div>
+                  <div className="dash-limit__foot">
+                    <span>{limit.status || 'normal'}</span>
+                    {typeof limit.remaining === 'number' ? (
+                      <span>{limit.remaining.toLocaleString()} remaining</span>
+                    ) : (
+                      <span>Usage pending sync</span>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </section>
 
@@ -327,25 +443,38 @@ const Dashboard = () => {
 
       <section className={'dash-card' + (hasCredits ? '' : ' dash-card--muted')}>
         <div className="dash-card__head">
-          <h2 className="dash-card__title">Credit usage</h2>
-          {hasCredits && balance != null && (
-            <span className="dash-count">
-              {balance.toLocaleString()}
-              {allocation != null ? ` / ${allocation.toLocaleString()}` : ''} left
-            </span>
-          )}
+          <h2 className="dash-card__title">Credits & usage</h2>
         </div>
         {!hasCredits ? (
           <p className="dash-empty">Usage and credit tracking will show up here once your team starts using credits.</p>
         ) : (
           <>
-            <p className="dash-credit-total">
-              {credits?.totalDeducted || 0} credit
-              {(credits?.totalDeducted || 0) === 1 ? '' : 's'} used
-            </p>
+            <div className="dash-credit-cards">
+              <div className="dash-credit-card">
+                <span className="dash-credit-card__label">Current balance</span>
+                <span className="dash-credit-card__value">
+                  {balance != null ? balance.toLocaleString() : '—'}
+                </span>
+              </div>
+              <div className="dash-credit-card">
+                <span className="dash-credit-card__label">Monthly allocation</span>
+                <span className="dash-credit-card__value">
+                  {allocation != null ? allocation.toLocaleString() : '—'}
+                </span>
+              </div>
+              <div className="dash-credit-card">
+                <span className="dash-credit-card__label">Used this cycle</span>
+                <span className="dash-credit-card__value">{totalDeducted.toLocaleString()}</span>
+              </div>
+            </div>
+
+            <h3 className="dash-section-label">By user</h3>
             <ul className="dash-usage-list">
               <li className="dash-usage">
-                <span className="dash-usage__name">You (owner)</span>
+                <span className="dash-usage__name">
+                  {ownerName}
+                  <span className="dash-usage__tag">Owner</span>
+                </span>
                 <span className="dash-usage__val">{credits?.owner?.deducted || 0}</span>
               </li>
               {(credits?.bySubAccount || []).map((u) => (
@@ -358,6 +487,29 @@ const Dashboard = () => {
                 </li>
               ))}
             </ul>
+
+            {byFeature.length > 0 ? (
+              <>
+                <h3 className="dash-section-label">By service</h3>
+                <ul className="dash-feature-list">
+                  {byFeature.slice(0, 8).map((f) => {
+                    const pct = Math.round(((f.deducted || 0) / featureTotal) * 100);
+                    return (
+                      <li key={f.key} className="dash-feature">
+                        <div className="dash-feature__head">
+                          <span>{prettyFeatureKey(f.key)}</span>
+                          <strong>{f.deducted.toLocaleString()}</strong>
+                        </div>
+                        <div className="dash-feature__bar" aria-hidden="true">
+                          <span style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="dash-feature__pct">{pct}% of usage</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            ) : null}
           </>
         )}
         <div className="dash-card__foot">

@@ -5,6 +5,7 @@ API reference for the Eijent web app team.
 These are the **credits-related** Core APIs:
 
 - GET Entitlements
+- POST Sync Usage / Limit Check (`/api/entitlements/usage`)
 - GET Feature Credit Costs
 - GET Credit Balance
 - POST Check Credits
@@ -92,9 +93,13 @@ x-api-key: <key>
       "module": "Contacts",
       "moduleEnabled": true,
       "unlimited": false,
-      "limit": 1000
+      "limit": 1000,
+      "used": 120,
+      "remaining": 880,
+      "status": "normal"
     }
   ],
+  "usageCountsUpdatedAt": "2026-07-24T12:00:00.000Z",
   "credits": {
     "balance": 80,
     "allocation": 100,
@@ -109,7 +114,9 @@ x-api-key: <key>
 
 ### Notes for the web app
 
-- `limits` are **max caps**, not used counts.
+- Each limit row includes **max** (`limit`) and **used** when the product has synced usage.
+- `used` is `null` until the product sends counts (see Sync Usage below).
+- `status` is one of: `normal`, `warning` (≥80%), `reached`, `exceeded`, `unlimited`.
 - Use `modules` / `limits` to decide what UI and create actions are allowed.
 - Use `credits` for wallet display; for spend decisions prefer Check / Deduct.
 
@@ -123,6 +130,74 @@ x-api-key: <key>
 | `400`         | Missing `memberId` / `subscriptionId` |
 | `401` / `403` | Auth / permission problem             |
 | `404`         | Subscription or plan not found        |
+
+
+---
+
+
+
+## 1b. POST Sync Usage / Limit Check
+
+Sync current entity counts onto the subscription, and optionally ask whether creating more is allowed.
+
+
+|                |                             |
+| -------------- | --------------------------- |
+| **Method**     | `POST`                      |
+| **Path**       | `/api/entitlements/usage`   |
+| **Auth**       | API key                     |
+| **Permission** | Subscriptions **update**    |
+| **Body**       | JSON                        |
+
+
+
+
+### Body fields
+
+
+| Field            | Required | Notes |
+| ---------------- | -------- | ----- |
+| `memberId`       | one of   | |
+| `subscriptionId` | one of   | |
+| `usage`          | no       | Object of known limit keys → current counts, e.g. `{ "maxWorkspaces": 5 }` |
+| `limitCheck`     | no       | `{ "field": "maxWorkspaces", "increment": 1 }` before create |
+
+
+
+Keys in `usage` must match service-plan limit fields (`maxWorkspaces`, `maxContacts`, `maxTeamMembers`, …). Unknown keys are ignored.
+
+
+
+### Example
+
+```http
+POST /api/entitlements/usage
+x-api-key: <key>
+Content-Type: application/json
+
+{
+  "memberId": "abc123",
+  "usage": { "maxWorkspaces": 5, "maxTeamMembers": 3 },
+  "limitCheck": { "field": "maxWorkspaces", "increment": 1 }
+}
+```
+
+
+
+### Success `200`
+
+Returns `synced`, `usageCounts`, and full `limits` (same shape as entitlements).
+
+
+
+### Common errors
+
+
+| Status        | Meaning |
+| ------------- | ------- |
+| `403` + `limit_exceeded` | Create would exceed plan max (`details`: field, used, limit, increment) |
+| `403` + `module_disabled` | That module is not on the plan |
+| `400` | Unknown `limitCheck.field` or missing target |
 
 
 ---
@@ -284,7 +359,9 @@ Does **not** spend credits.
 | `memberId`          | one of   |                              |
 | `subscriptionId`    | one of   |                              |
 | `subAccountId`      | no       | If a sub-account is acting   |
-| `subAccountPulseId` | no       | Alternate sub-account id     |
+| `subAccountPulseId` | no       | Alternate sub-account id (not `pulse_memberId`) |
+| `usage`             | no       | Sync entity counts (`maxWorkspaces`, …) |
+| `limitCheck`        | no       | `{ "field": "maxWorkspaces", "increment": 1 }` before create |
 
 
 
@@ -298,7 +375,9 @@ Content-Type: application/json
 
 {
   "memberId": "abc123",
-  "featureKey": "ai.email_draft"
+  "featureKey": "ai.email_draft",
+  "usage": { "maxWorkspaces": 5 },
+  "limitCheck": { "field": "maxWorkspaces", "increment": 1 }
 }
 ```
 
@@ -315,7 +394,9 @@ Content-Type: application/json
   "affordable": true,
   "free": false,
   "subAccountId": null,
-  "subAccountPulseId": null
+  "subAccountPulseId": null,
+  "limits": [],
+  "usageCountsUpdatedAt": "2026-07-24T12:00:00.000Z"
 }
 ```
 
@@ -327,7 +408,7 @@ Content-Type: application/json
 | Status        | Meaning                                                 |
 | ------------- | ------------------------------------------------------- |
 | `400`         | `featureKey` missing, or no member/subscription target  |
-| `401` / `403` | Auth / permission / sub-account mismatch                |
+| `401` / `403` | Auth / permission / sub-account mismatch / `limit_exceeded` |
 | `404`         | Unknown feature or subscription / sub-account not found |
 
 
@@ -362,7 +443,8 @@ This is the write call the web app should use after (or as part of) a billable a
 | `memberId`          | one of   |                                                 |
 | `subscriptionId`    | one of   |                                                 |
 | `subAccountId`      | no       | Who spent (still from owner wallet)             |
-| `subAccountPulseId` | no       | Alternate sub-account id                        |
+| `subAccountPulseId` | no       | Alternate sub-account id (not `pulse_memberId`) |
+| `usage`             | no       | Sync entity counts only (does **not** enforce plan caps) |
 
 
 
@@ -424,6 +506,8 @@ Content-Type: application/json
 1. Prefer **Check** before expensive work if you want a friendly “not enough credits” UX first.
 2. Always send a stable **idempotencyKey** per user action (so retries do not double-charge).
 3. Then call **Deduct** when the billable action is committed.
+4. Before creating workspaces / contacts / seats, call **POST /api/entitlements/usage** (or Check) with `usage` + `limitCheck`.
+5. Include current `usage` on Check / Deduct so the member dashboard can show used / max.
 
 ---
 
@@ -437,6 +521,7 @@ Collection name idea: **BPS Core – Credits API**
 | Request name             | Method | Path                                         |
 | ------------------------ | ------ | -------------------------------------------- |
 | GET Entitlements         | `GET`  | `/api/entitlements?memberId={{memberId}}`    |
+| POST Sync Usage          | `POST` | `/api/entitlements/usage`                    |
 | GET Feature Credit Costs | `GET`  | `/api/credits/features`                      |
 | GET Credit Balance       | `GET`  | `/api/credits/balance?memberId={{memberId}}` |
 | POST Check Credits       | `POST` | `/api/credits/check`                         |
@@ -460,13 +545,18 @@ Collection variables:
 ```text
 User triggers a billable feature
   -> GET /api/entitlements (optional, for module / limit UI)
-  -> POST /api/credits/check  (can they afford it?)
+  -> POST /api/credits/check  (can they afford it? optional usage + limitCheck)
   -> run the feature
-  -> POST /api/credits/deduct (with idempotencyKey)
+  -> POST /api/credits/deduct (with idempotencyKey, optional usage sync)
   -> show updated balance
+
+User creates a capped entity (workspace, contact, …)
+  -> POST /api/entitlements/usage with usage + limitCheck
+  -> if allowed, create in product
+  -> optionally sync updated usage again
 ```
 
-For plan / module gates (not credit spend), use **Entitlements**.
+For plan / module gates (not credit spend), use **Entitlements** / **Sync Usage**.
 
 ---
 

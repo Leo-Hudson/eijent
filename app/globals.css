@@ -1680,6 +1680,16 @@ a.signup-submit {
   justify-content: space-between;
   gap: 16px;
 }
+.dash-low-credits {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  border: 1px solid color-mix(in srgb, #c47b1a 35%, var(--border-soft));
+  background: color-mix(in srgb, #c47b1a 10%, var(--bg-soft));
+  color: var(--ink-800);
+  font-size: 13px;
+  line-height: 1.45;
+}
 .dash-identity {
   display: flex;
   align-items: center;

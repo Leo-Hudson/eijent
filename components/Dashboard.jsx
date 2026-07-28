@@ -160,6 +160,9 @@ const Dashboard = () => {
     member?.status === 'Active' ? 'is-good' : member?.status === 'Suspended' ? 'is-bad' : 'is-warn';
   const byFeature = credits?.byFeature || [];
   const featureTotal = byFeature.reduce((sum, f) => sum + (f.deducted || 0), 0) || totalDeducted || 1;
+  const isLowOnCredits = Boolean(wallet?.isLowOnCredits);
+  const lowCreditThreshold =
+    typeof wallet?.lowCreditAlertThreshold === 'number' ? wallet.lowCreditAlertThreshold : null;
 
   return (
     <div className="dash">
@@ -185,6 +188,16 @@ const Dashboard = () => {
         </div>
       </header>
 
+      {isLowOnCredits ? (
+        <div className="dash-low-credits" role="status">
+          You are low on credits
+          {balance != null ? ` (${balance.toLocaleString()} left)` : ''}
+          {lowCreditThreshold != null && lowCreditThreshold > 0
+            ? `. Warning shows below ${lowCreditThreshold.toLocaleString()}.`
+            : '.'}{' '}
+          Consider buying a credit pack or waiting for your next reset.
+        </div>
+      ) : null}
       <section className="dash-card">
         <div className="dash-card__head">
           <h2 className="dash-card__title">Account owner</h2>

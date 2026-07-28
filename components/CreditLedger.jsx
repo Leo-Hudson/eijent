@@ -110,12 +110,20 @@ const resolveSubAccount = (row, ownerId) => {
         ? String(row.user.id) === String(ownerId)
         : undefined;
     return {
-      name: row.user.name || '—',
+      name: row.user.name || '-',
       email: row.user.email || null,
       isOwner,
     };
   }
   return null;
+};
+
+/** Display label from Core workspace attribution (object or flat fields). */
+const resolveWorkspaceLabel = (row) => {
+  if (row?.workspace && typeof row.workspace === 'object') {
+    return row.workspace.name || row.workspace.id || null;
+  }
+  return row?.workspaceName || row?.workspaceId || null;
 };
 
 const buildLedgerParams = (applied, page) => {
@@ -309,6 +317,7 @@ const CreditLedger = () => {
     const header = [
       'Date',
       'Transaction Type',
+      'Workspace',
       'Service',
       'Sub-account',
       'Sub-account Email',
@@ -330,6 +339,7 @@ const CreditLedger = () => {
         [
           when?.full || '',
           row.displayType || row.type || '',
+          resolveWorkspaceLabel(row) || '',
           row.service || '',
           subLabel,
           sub?.email || '',
@@ -490,6 +500,7 @@ const CreditLedger = () => {
             <tr>
               <th>Date</th>
               <th>Transaction Type</th>
+              <th>Workspace</th>
               <th>Service</th>
               <th>Sub-account</th>
               <th>Credits</th>
@@ -501,14 +512,14 @@ const CreditLedger = () => {
           <tbody>
             {state.loading && state.docs.length === 0 && (
               <tr>
-                <td colSpan={8} className="ledger-empty">
+                <td colSpan={9} className="ledger-empty">
                   Loading ledger…
                 </td>
               </tr>
             )}
             {!state.loading && state.docs.length === 0 && (
               <tr>
-                <td colSpan={8} className="ledger-empty">
+                <td colSpan={9} className="ledger-empty">
                   No credit transactions match these filters. Usage only appears under a
                   sub-account when the product attributes the deduction to that account.
                 </td>
@@ -518,6 +529,7 @@ const CreditLedger = () => {
               const amt = Number(row.amount) || 0;
               const when = formatDateTime(row.createdAt);
               const sub = resolveSubAccount(row, ownerId);
+              const workspaceLabel = resolveWorkspaceLabel(row);
               return (
                 <tr key={row.id}>
                   <td className="ledger-date">
@@ -527,11 +539,12 @@ const CreditLedger = () => {
                         <span className="ledger-date__time">{when.time}</span>
                       </>
                     ) : (
-                      '—'
+                      '-'
                     )}
                   </td>
                   <td>{row.displayType || row.type}</td>
-                  <td>{row.service || '—'}</td>
+                  <td>{workspaceLabel || '-'}</td>
+                  <td>{row.service || '-'}</td>
                   <td>
                     {sub ? (
                       <div className="ledger-user">
@@ -544,17 +557,17 @@ const CreditLedger = () => {
                         {sub.email && <span className="ledger-user__email mono">{sub.email}</span>}
                       </div>
                     ) : (
-                      '—'
+                      '-'
                     )}
                   </td>
                   <td className={amt > 0 ? 'is-credit' : amt < 0 ? 'is-debit' : ''}>
                     {formatCredits(amt)}
                   </td>
                   <td>
-                    {typeof row.balanceAfter === 'number' ? row.balanceAfter.toLocaleString() : '—'}
+                    {typeof row.balanceAfter === 'number' ? row.balanceAfter.toLocaleString() : '-'}
                   </td>
-                  <td className="mono ledger-ref">{row.reference || '—'}</td>
-                  <td>{row.description || '—'}</td>
+                  <td className="mono ledger-ref">{row.reference || '-'}</td>
+                  <td>{row.description || '-'}</td>
                 </tr>
               );
             })}

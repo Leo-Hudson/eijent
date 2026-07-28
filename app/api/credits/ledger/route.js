@@ -10,6 +10,7 @@ const ALLOWED_PARAMS = new Set([
   'to',
   'type',
   'featureKey',
+  'workspaceId',
   'subAccountId',
   'ownerOnly',
   'direction',

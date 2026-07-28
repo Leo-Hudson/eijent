@@ -135,6 +135,12 @@ const fetchEntitlements = async (memberId) => {
           resetCycle: data.credits.resetCycle || null,
           customDays: data.credits.customDays ?? null,
           nextResetAt: data.credits.nextResetAt || null,
+          unusedCreditsPolicy: data.credits.unusedCreditsPolicy || null,
+          lowCreditAlertThreshold:
+            typeof data.credits.lowCreditAlertThreshold === 'number'
+              ? data.credits.lowCreditAlertThreshold
+              : null,
+          isLowOnCredits: Boolean(data.credits.isLowOnCredits),
         }
       : null,
   };

@@ -1,81 +1,68 @@
-# BPS Core – Credits APIs (Postman-style)
+# BPS Core – Credits, coupons, and entitlements APIs
 
-API reference for the Eijent web app team.
+API reference for the Eijent web app / product app team.
 
-These are the **credits-related** Core APIs:
+Canonical Core copy (kept in sync): `bps-core/docs/api/credits-coupons-entitlements.md`.
 
-- GET Entitlements
-- POST Sync Usage / Limit Check (`/api/entitlements/usage`)
-- GET Feature Credit Costs
-- GET Credit Balance
-- POST Check Credits
-- POST Deduct Credits
+Architecture (Product vs Pricing Plan vs Service Plan): `bps-core/docs/architecture/plans-credits-coupons.md`.
 
-Use these from the Eijent web app (server side) with the Core **API key we will provide**.
+---
+
+## What’s covered
+
+| Area | Endpoints |
+| ---- | --------- |
+| Entitlements | `GET /api/entitlements`, `POST /api/entitlements/usage` |
+| Credits wallet | `GET /api/credits/balance`, `GET /api/credits/features` |
+| Spend | `POST /api/credits/check`, `POST /api/credits/deduct` |
+| History | `GET /api/credits/ledger`, `GET /api/credits/usage` |
+| Top-ups | `POST /api/credits/packages/purchase` |
+| Coupons | `POST /api/coupons/validate`, `POST /api/coupons/redeem` |
+| Resets (ops) | `POST /api/credits/reset`, `POST /api/credits/reset/force` |
+
+Call these from the **server** with the Core API key we provide.
 
 ---
 
 ## Base URL and auth
 
+| Item | Value |
+| ---- | ----- |
+| Base URL | Core environment URL |
+| Auth | API key |
 
-| Item     | Value                                                      |
-| -------- | ---------------------------------------------------------- |
-| Base URL | Your Core environment URL (example: `https://<core-host>`) |
-| Auth     | API key provided                                           |
-
-
-Send the key on every request as one of:
+Send on every request:
 
 - `x-api-key: <your-key>`
 - or `Authorization: Bearer <your-key>` / `Authorization: ApiKey <your-key>`
 
-We configure the key’s access on our side. You do not need to manage permissions.
-
 ### Targeting a member / subscription
 
-For endpoints that need a target, send **one** of:
+Send **one** of:
 
-- `memberId` (often easiest for the web app), or
+- `memberId` (often easiest), or
 - `subscriptionId`
 
 ---
 
-
-
 ## 1. GET Entitlements
 
-What modules and limits the member’s plan includes, plus a credit wallet snapshot.
+What modules and limits the plan includes (including Pricing Plan overrides), usage when synced, and credit wallet.
 
 
-|                |                     |
-| -------------- | ------------------- |
-| **Method**     | `GET`               |
-| **Path**       | `/api/entitlements` |
-| **Auth**       | API key             |
-| **Permission** | Subscriptions read  |
-
-
+| | |
+| --- | --- |
+| **Method** | `GET` |
+| **Path** | `/api/entitlements` |
+| **Permission** | Subscriptions read |
 
 
 ### Query params
 
-
-| Param            | Required | Notes           |
-| ---------------- | -------- | --------------- |
-| `memberId`       | one of   | Member id       |
-| `subscriptionId` | one of   | Subscription id |
-
-
-
-
-### Example
-
-```http
-GET /api/entitlements?memberId=abc123
-x-api-key: <key>
-```
-
-
+| Param | Required | Notes |
+| ----- | -------- | ----- |
+| `memberId` | one of | |
+| `subscriptionId` | one of | |
 
 ### Success `200` (shape)
 
@@ -88,15 +75,16 @@ x-api-key: <key>
   "modules": ["Contacts", "Tasks"],
   "limits": [
     {
-      "field": "maxContacts",
-      "label": "Max Contacts",
-      "module": "Contacts",
+      "field": "maxWorkspaces",
+      "label": "Max Workspaces",
+      "module": "Workspaces",
       "moduleEnabled": true,
       "unlimited": false,
-      "limit": 1000,
-      "used": 120,
-      "remaining": 880,
-      "status": "normal"
+      "limit": 8,
+      "used": 5,
+      "remaining": 3,
+      "status": "normal",
+      "allowExtras": true
     }
   ],
   "usageCountsUpdatedAt": "2026-07-24T12:00:00.000Z",
@@ -105,140 +93,80 @@ x-api-key: <key>
     "allocation": 100,
     "resetCycle": "monthly",
     "customDays": null,
-    "nextResetAt": "2026-08-01T00:00:00.000Z"
+    "lastResetAt": null,
+    "nextResetAt": "2026-08-01T00:00:00.000Z",
+    "unusedCreditsPolicy": "expire",
+    "lowCreditAlertThreshold": 20,
+    "isLowOnCredits": false
   }
 }
 ```
 
+### Notes
 
-
-### Notes for the web app
-
-- Each limit row includes **max** (`limit`) and **used** when the product has synced usage.
-- `used` is `null` until the product sends counts (see Sync Usage below).
-- `status` is one of: `normal`, `warning` (≥80%), `reached`, `exceeded`, `unlimited`.
-- Use `modules` / `limits` to decide what UI and create actions are allowed.
-- Use `credits` for wallet display; for spend decisions prefer Check / Deduct.
-
-
+- `used` is `null` until the product syncs counts.
+- Limit `status`: `normal`, `warning` (≥80%), `reached`, `exceeded`, `unlimited`.
+- `isLowOnCredits` is true when threshold &gt; 0 and balance **&lt;** threshold (landing dashboard banner).
+- Use `modules` / `limits` for UI gates; use Check / Deduct for spend.
 
 ### Common errors
 
-
-| Status        | Meaning                               |
-| ------------- | ------------------------------------- |
-| `400`         | Missing `memberId` / `subscriptionId` |
-| `401` / `403` | Auth / permission problem             |
-| `404`         | Subscription or plan not found        |
-
+| Status | Meaning |
+| ------ | ------- |
+| `400` | Missing target |
+| `401` / `403` | Auth / permission |
+| `404` | Subscription or plan not found |
 
 ---
-
-
 
 ## 1b. POST Sync Usage / Limit Check
 
-Sync current entity counts onto the subscription, and optionally ask whether creating more is allowed.
+Sync entity counts; optionally ask if creating more is allowed (no credit spend).
 
 
-|                |                             |
-| -------------- | --------------------------- |
-| **Method**     | `POST`                      |
-| **Path**       | `/api/entitlements/usage`   |
-| **Auth**       | API key                     |
-| **Permission** | Subscriptions **update**    |
-| **Body**       | JSON                        |
+| | |
+| --- | --- |
+| **Method** | `POST` |
+| **Path** | `/api/entitlements/usage` |
+| **Permission** | Subscriptions **update** |
 
 
+### Body
 
+| Field | Required | Notes |
+| ----- | -------- | ----- |
+| `memberId` / `subscriptionId` | one of | |
+| `usage` | no | `{ "maxWorkspaces": 5, ... }` |
+| `limitCheck` | no | `{ "field": "maxWorkspaces", "increment": 1 }` |
 
-### Body fields
-
-
-| Field            | Required | Notes |
-| ---------------- | -------- | ----- |
-| `memberId`       | one of   | |
-| `subscriptionId` | one of   | |
-| `usage`          | no       | Object of known limit keys → current counts, e.g. `{ "maxWorkspaces": 5 }` |
-| `limitCheck`     | no       | `{ "field": "maxWorkspaces", "increment": 1 }` before create |
-
-
-
-Keys in `usage` must match service-plan limit fields (`maxWorkspaces`, `maxContacts`, `maxTeamMembers`, …). Unknown keys are ignored.
-
-
-
-### Example
-
-```http
-POST /api/entitlements/usage
-x-api-key: <key>
-Content-Type: application/json
-
-{
-  "memberId": "abc123",
-  "usage": { "maxWorkspaces": 5, "maxTeamMembers": 3 },
-  "limitCheck": { "field": "maxWorkspaces", "increment": 1 }
-}
-```
-
-
+Unknown usage keys are ignored.
 
 ### Success `200`
 
-Returns `synced`, `usageCounts`, and full `limits` (same shape as entitlements).
+`synced`, `usageCounts`, `limits`, and `limitCheck` when requested. `limitCheck` may include:
 
-
+- `allowed` / `blocked`
+- `overageUnits`, `overageCost`, `allowExtras`
 
 ### Common errors
 
-
-| Status        | Meaning |
-| ------------- | ------- |
-| `403` + `limit_exceeded` | Create would exceed plan max (`details`: field, used, limit, increment) |
-| `403` + `module_disabled` | That module is not on the plan |
-| `400` | Unknown `limitCheck.field` or missing target |
-
+| Status | Meaning |
+| ------ | ------- |
+| `403` + `limit_exceeded` | Over max and Allow extras is **off** |
+| `403` + `module_disabled` | Module not on plan |
+| `400` | Bad field / missing target |
 
 ---
 
-
-
 ## 2. GET Feature Credit Costs
 
-Catalog of how many credits each feature costs.
+| | |
+| --- | --- |
+| **Method** | `GET` |
+| **Path** | `/api/credits/features` |
+| **Permission** | Subscriptions read |
 
-
-|                |                         |
-| -------------- | ----------------------- |
-| **Method**     | `GET`                   |
-| **Path**       | `/api/credits/features` |
-| **Auth**       | API key                 |
-| **Permission** | Subscriptions read      |
-
-
-
-
-### Query params
-
-
-| Param | Required | Notes                     |
-| ----- | -------- | ------------------------- |
-| `key` | no       | Filter to one feature key |
-
-
-
-
-### Example
-
-```http
-GET /api/credits/features
-x-api-key: <key>
-```
-
-
-
-### Success `200` (shape)
+Optional query: `key` to filter one feature.
 
 ```json
 {
@@ -254,142 +182,53 @@ x-api-key: <key>
 }
 ```
 
-
-
-### Common errors
-
-
-| Status        | Meaning                   |
-| ------------- | ------------------------- |
-| `401` / `403` | Auth / permission problem |
-
-
 ---
-
-
 
 ## 3. GET Credit Balance
 
-Current credit wallet for one subscription / member.
+Same wallet fields as `credits` on entitlements (including unused-credits policy and low-credit alert).
 
+| | |
+| --- | --- |
+| **Method** | `GET` |
+| **Path** | `/api/credits/balance` |
+| **Permission** | Subscriptions read |
 
-|                |                        |
-| -------------- | ---------------------- |
-| **Method**     | `GET`                  |
-| **Path**       | `/api/credits/balance` |
-| **Auth**       | API key                |
-| **Permission** | Subscriptions read     |
-
-
-
-
-### Query params
-
-
-| Param            | Required | Notes |
-| ---------------- | -------- | ----- |
-| `memberId`       | one of   |       |
-| `subscriptionId` | one of   |       |
-
-
-
-
-### Example
-
-```http
-GET /api/credits/balance?memberId=abc123
-x-api-key: <key>
-```
-
-
-
-### Success `200` (shape)
-
-```json
-{
-  "subscriptionId": "...",
-  "balance": 80,
-  "allocation": 100,
-  "resetCycle": "monthly",
-  "customDays": null,
-  "lastResetAt": null,
-  "nextResetAt": "2026-08-01T00:00:00.000Z"
-}
-```
-
-
-
-### Common errors
-
-
-| Status        | Meaning                   |
-| ------------- | ------------------------- |
-| `400`         | Missing target id         |
-| `401` / `403` | Auth / permission problem |
-| `404`         | Subscription not found    |
-
+Query: `memberId` | `subscriptionId`.
 
 ---
 
-
-
 ## 4. POST Check Credits
 
-Ask: “Can this member afford this feature right now?”  
-Does **not** spend credits.
+“Can they afford this?” Does **not** spend.
 
 
-|                |                      |
-| -------------- | -------------------- |
-| **Method**     | `POST`               |
-| **Path**       | `/api/credits/check` |
-| **Auth**       | API key              |
-| **Permission** | Subscriptions read   |
-| **Body**       | JSON                 |
+| | |
+| --- | --- |
+| **Method** | `POST` |
+| **Path** | `/api/credits/check` |
+| **Permission** | Subscriptions read |
 
 
+### Body
 
+| Field | Required | Notes |
+| ----- | -------- | ----- |
+| `featureKey` | yes | From catalog |
+| `memberId` / `subscriptionId` | one of | |
+| `subAccountId` / `subAccountPulseId` | no | Attribution only |
+| `usage` | no | Sync counts |
+| `limitCheck` | no | Pre-create check |
 
-### Body fields
-
-
-| Field               | Required | Notes                        |
-| ------------------- | -------- | ---------------------------- |
-| `featureKey`        | yes      | Feature key from the catalog |
-| `memberId`          | one of   |                              |
-| `subscriptionId`    | one of   |                              |
-| `subAccountId`      | no       | If a sub-account is acting   |
-| `subAccountPulseId` | no       | Alternate sub-account id (not `pulse_memberId`) |
-| `usage`             | no       | Sync entity counts (`maxWorkspaces`, …) |
-| `limitCheck`        | no       | `{ "field": "maxWorkspaces", "increment": 1 }` before create |
-
-
-
-
-### Example
-
-```http
-POST /api/credits/check
-x-api-key: <key>
-Content-Type: application/json
-
-{
-  "memberId": "abc123",
-  "featureKey": "ai.email_draft",
-  "usage": { "maxWorkspaces": 5 },
-  "limitCheck": { "field": "maxWorkspaces", "increment": 1 }
-}
-```
-
-
-
-### Success `200` (shape)
+### Success `200`
 
 ```json
 {
   "subscriptionId": "...",
   "featureKey": "ai.email_draft",
   "cost": 5,
+  "overageCost": 0,
+  "totalCost": 5,
   "balance": 80,
   "affordable": true,
   "free": false,
@@ -400,72 +239,46 @@ Content-Type: application/json
 }
 ```
 
-
-
-### Common errors
-
-
-| Status        | Meaning                                                 |
-| ------------- | ------------------------------------------------------- |
-| `400`         | `featureKey` missing, or no member/subscription target  |
-| `401` / `403` | Auth / permission / sub-account mismatch / `limit_exceeded` |
-| `404`         | Unknown feature or subscription / sub-account not found |
-
-
 ---
-
-
 
 ## 5. POST Deduct Credits
 
-Spend credits for a feature action.  
-This is the write call the web app should use after (or as part of) a billable action.
+Spend for a feature **or** entity overage.
 
 
-|                |                          |
-| -------------- | ------------------------ |
-| **Method**     | `POST`                   |
-| **Path**       | `/api/credits/deduct`    |
-| **Auth**       | API key                  |
+| | |
+| --- | --- |
+| **Method** | `POST` |
+| **Path** | `/api/credits/deduct` |
 | **Permission** | Subscriptions **update** |
-| **Body**       | JSON                     |
 
 
+### Body (choose one mode)
 
+**Feature spend**
 
-### Body fields
+| Field | Required | Notes |
+| ----- | -------- | ----- |
+| `featureKey` | yes* | |
+| `idempotencyKey` | yes | Retry-safe |
+| `memberId` / `subscriptionId` | one of | |
+| `subAccountId` / `subAccountPulseId` | no | Who spent (owner wallet) |
+| `usage` | no | Sync only (does not enforce caps) |
+| `workspace` or `workspaceId` + `workspaceName` | no | Stored on ledger for product attribution |
 
+**Entity overage**
 
-| Field               | Required | Notes                                           |
-| ------------------- | -------- | ----------------------------------------------- |
-| `featureKey`        | yes      | Feature key                                     |
-| `idempotencyKey`    | yes      | Unique key for this logical action (retry-safe) |
-| `memberId`          | one of   |                                                 |
-| `subscriptionId`    | one of   |                                                 |
-| `subAccountId`      | no       | Who spent (still from owner wallet)             |
-| `subAccountPulseId` | no       | Alternate sub-account id (not `pulse_memberId`) |
-| `usage`             | no       | Sync entity counts only (does **not** enforce plan caps) |
+| Field | Required | Notes |
+| ----- | -------- | ----- |
+| `overage` | yes* | `{ "field": "maxWorkspaces", "units": 1 }` |
+| `idempotencyKey` | yes | |
+| target + optional workspace / sub-account / usage | | |
 
+\* Provide **either** `featureKey` **or** `overage`, not both.
 
+`overage.units` is the **create count**, not the credit charge. Core derives cost from current usage + Pricing Plan `additionalEntityCosts`. Rejects `units: 0`.
 
-
-### Example
-
-```http
-POST /api/credits/deduct
-x-api-key: <key>
-Content-Type: application/json
-
-{
-  "memberId": "abc123",
-  "featureKey": "ai.email_draft",
-  "idempotencyKey": "email-draft-2026-07-23-req-001"
-}
-```
-
-
-
-### Success `200` (new spend)
+### Success `200`
 
 ```json
 {
@@ -475,107 +288,194 @@ Content-Type: application/json
   "deducted": 5,
   "balance": 75,
   "subAccountId": null,
-  "subAccountPulseId": null
+  "workspaceId": "ws_123",
+  "workspaceName": "Acme HQ"
 }
 ```
 
-
-
-### Success notes
-
-- Same `idempotencyKey` retried for the same subscription / actor returns the original result (`idempotent: true`) instead of charging twice.
-- Free features (`creditPoints` 0) succeed with `deducted: 0` and may not write a ledger row.
-
-
+- Same idempotency key for the same subscription + actor returns `idempotent: true`.
+- Free features: `deducted: 0`, may skip ledger row.
 
 ### Common errors
 
-
-| Status        | Meaning                                                 |
-| ------------- | ------------------------------------------------------- |
-| `400`         | Missing `featureKey` or `idempotencyKey`                |
-| `402`         | Insufficient credits                                    |
-| `401` / `403` | Auth / permission / sub-account mismatch                |
-| `404`         | Unknown feature or subscription / sub-account not found |
-
-
-
+| Status | Meaning |
+| ------ | ------- |
+| `400` | Missing key / invalid overage / both modes |
+| `402` | `insufficient_credits` |
+| `401` / `403` | Auth / permission / sub-account mismatch |
+| `404` | Unknown feature / subscription / sub-account |
 
 ### Web app guidance
 
-1. Prefer **Check** before expensive work if you want a friendly “not enough credits” UX first.
-2. Always send a stable **idempotencyKey** per user action (so retries do not double-charge).
-3. Then call **Deduct** when the billable action is committed.
-4. Before creating workspaces / contacts / seats, call **POST /api/entitlements/usage** (or Check) with `usage` + `limitCheck`.
-5. Include current `usage` on Check / Deduct so the member dashboard can show used / max.
+1. Prefer **Check** before expensive work for UX.
+2. Always send a stable **idempotencyKey** per user action.
+3. **Deduct** when the billable action commits.
+4. Before creating capped entities: **usage** + **limitCheck**.
+5. If over free cap and Allow extras is on: deduct with `overage` after create (or as your product flow requires).
+6. Pass **workspace** when the spend belongs to a workspace so the member ledger can filter it.
 
 ---
 
+## 6. GET Credit Ledger
+
+Full history for the landing **credit ledger** page (filters, KPIs, CSV).
 
 
-## Suggested Postman setup
-
-Collection name idea: **BPS Core – Credits API**
-
-
-| Request name             | Method | Path                                         |
-| ------------------------ | ------ | -------------------------------------------- |
-| GET Entitlements         | `GET`  | `/api/entitlements?memberId={{memberId}}`    |
-| POST Sync Usage          | `POST` | `/api/entitlements/usage`                    |
-| GET Feature Credit Costs | `GET`  | `/api/credits/features`                      |
-| GET Credit Balance       | `GET`  | `/api/credits/balance?memberId={{memberId}}` |
-| POST Check Credits       | `POST` | `/api/credits/check`                         |
-| POST Deduct Credits      | `POST` | `/api/credits/deduct`                        |
+| | |
+| --- | --- |
+| **Method** | `GET` |
+| **Path** | `/api/credits/ledger` |
+| **Permission** | Subscriptions read |
 
 
-Collection variables:
+### Useful query params
 
-- `baseUrl`
-- `apiKey`
-- `memberId`
-- `featureKey`
-- `idempotencyKey`
+| Param | Notes |
+| ----- | ----- |
+| `memberId` / `subscriptionId` | Target |
+| `from` / `to` | Date range |
+| `type` | `deduct` \| `reset` \| `grant` |
+| `featureKey` | Filter |
+| `workspaceId` | Workspace attribution |
+| `subAccountId` / `ownerOnly` | Actor filter |
+| `direction` | `credit` \| `debit` |
+| `q` | Text |
+| `page` / `limit` | Pagination (limit max 100) |
+
+### Success `200`
+
+`docs[]` (rows with display fields), `summary` (totals for KPI cards), `currentBalance`, pagination, `featureOptions`.
+
+If `summary` is missing (older Core build), the landing UI may aggregate from `docs` as a fallback.
 
 ---
 
+## 7. GET Credits Usage (by user)
+
+Rollup of deductions for owner vs sub-accounts (dashboard “by user”).
+
+| | |
+| --- | --- |
+| **Method** | `GET` |
+| **Path** | `/api/credits/usage` |
+| **Permission** | Subscriptions read |
+
+Query: target, optional `from` / `to`.
+
+---
+
+## 8. POST Credit Package Purchase
+
+Top-up the **owner** wallet. Sub-accounts can spend credits but do not purchase packs as the buyer.
 
 
-## Typical web app flow
+| | |
+| --- | --- |
+| **Method** | `POST` |
+| **Path** | `/api/credits/packages/purchase` |
+| **Permission** | Subscriptions **update** |
+
+
+### Body
+
+| Field | Required | Notes |
+| ----- | -------- | ----- |
+| `creditPackageId` | yes | Must be on the Pricing Plan |
+| `idempotencyKey` | yes | |
+| `memberId` / `subscriptionId` | one of | |
+| `couponCode` | no | Pack-eligible coupons only |
+| `paymentRef` | no | External payment reference |
+| `notes` | no | |
+
+### Success `200`
+
+`granted`, `balance`, `listPrice`, `discountAmount`, `pricePaid`, `couponCode`, `redemptionId`, optional `idempotent`.
+
+Money collection stays outside Core for now; pass `paymentRef` when paid elsewhere.
+
+---
+
+## 9. Coupons
+
+### `POST /api/coupons/validate`
+
+Preview only. Does not increment uses.
+
+**Body:** `code` (required), optional `tenantId`, `pricingPlanId`, `memberId`, `amount`, `forCreditPackage`.
+
+### `POST /api/coupons/redeem`
+
+Atomic reserve + redemption row.
+
+**Body:** `code`, `memberId`, `idempotencyKey` (required); optional `amount`, `pricingPlanId`, `source`, cart/subscription ids, `forCreditPackage`.
+
+### Coupon error codes (examples)
+
+`coupon_not_found`, `coupon_expired`, `coupon_inactive`, `coupon_not_started`, `coupon_not_for_packages`, `pricing_plan_required`, `coupon_plan_mismatch`, `coupon_max_uses`, `coupon_already_used`.
+
+---
+
+## 10. Credit resets (ops)
+
+| Endpoint | Who | Purpose |
+| -------- | --- | ------- |
+| `POST /api/credits/reset` | Platform secret or authorized caller | Due-cycle sweep (`expire` / `rollover`) |
+| `POST /api/credits/reset/force` | Super Admin | Immediate refill for one subscription |
+
+Product apps normally do not call these.
+
+---
+
+## Suggested Postman collection
+
+| Request | Method | Path |
+| ------- | ------ | ---- |
+| GET Entitlements | `GET` | `/api/entitlements?memberId={{memberId}}` |
+| POST Sync Usage | `POST` | `/api/entitlements/usage` |
+| GET Feature Costs | `GET` | `/api/credits/features` |
+| GET Balance | `GET` | `/api/credits/balance?memberId={{memberId}}` |
+| POST Check | `POST` | `/api/credits/check` |
+| POST Deduct | `POST` | `/api/credits/deduct` |
+| POST Deduct Overage | `POST` | `/api/credits/deduct` |
+| GET Ledger | `GET` | `/api/credits/ledger?memberId={{memberId}}` |
+| GET Usage by user | `GET` | `/api/credits/usage?memberId={{memberId}}` |
+| POST Buy Package | `POST` | `/api/credits/packages/purchase` |
+| POST Validate Coupon | `POST` | `/api/coupons/validate` |
+| POST Redeem Coupon | `POST` | `/api/coupons/redeem` |
+
+Variables: `baseUrl`, `apiKey`, `memberId`, `featureKey`, `idempotencyKey`, `creditPackageId`, `couponCode`.
+
+---
+
+## Typical product flows
 
 ```text
-User triggers a billable feature
-  -> GET /api/entitlements (optional, for module / limit UI)
-  -> POST /api/credits/check  (can they afford it? optional usage + limitCheck)
-  -> run the feature
-  -> POST /api/credits/deduct (with idempotencyKey, optional usage sync)
-  -> show updated balance
+Billable feature
+  -> POST /api/credits/check
+  -> run feature
+  -> POST /api/credits/deduct { featureKey, idempotencyKey, workspace? }
 
-User creates a capped entity (workspace, contact, …)
-  -> POST /api/entitlements/usage with usage + limitCheck
-  -> if allowed, create in product
-  -> optionally sync updated usage again
+Create capped entity
+  -> POST /api/entitlements/usage { usage, limitCheck }
+  -> if allowed, create
+  -> if overage charged, POST /api/credits/deduct { overage, idempotencyKey }
+
+Buy credit pack
+  -> POST /api/credits/packages/purchase
+
+Member ledger UI
+  -> GET /api/credits/ledger
 ```
 
-For plan / module gates (not credit spend), use **Entitlements** / **Sync Usage**.
-
 ---
 
+## Load note
 
-
-## Future note (important)
-
-This documentation describes the **current** credits flow on Core.
-
-We know these calls can put meaningful load on the Core server if the web app uses them heavily (especially frequent balance / usage style reads and high-volume deduct traffic).
-
-We are going to research a better long-term approach, including the possibility of a **separate microservice** dedicated to these credit actions. **For now, these Core APIs are the ones to use.**
+High-volume check / deduct traffic can load Core. A dedicated credits service may come later. **For now these Core APIs are the ones to use.**
 
 ---
-
-
 
 ## Related docs
 
 - [Member user story](./member-user-story.md)
 - [Member dashboard](./member-dashboard.md)
-

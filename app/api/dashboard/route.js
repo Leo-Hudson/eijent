@@ -30,6 +30,7 @@ const fetchSubscriptions = async (memberId) => {
       servicePlanName: servicePlan?.name || null,
       status: sub?.status || null,
       paymentStatus: sub?.paymentStatus || null,
+      paymentSource: sub?.paymentSource || null,
       price: typeof sub?.price === 'number' ? sub.price : null,
       currency: sub?.currency || null,
       billingCycle: sub?.billingCycle || null,
@@ -147,6 +148,7 @@ const fetchEntitlements = async (memberId) => {
 };
 
 const fetchSubAccounts = async (memberId) => {
+  // Caps at 100 client-side; Team page paginates/filters locally. Orgs over 100 need a paged Core proxy later.
   const query =
     `where[member_owner][equals]=${encodeURIComponent(memberId)}` +
     `&depth=0&limit=100&sort=-createdAt`;

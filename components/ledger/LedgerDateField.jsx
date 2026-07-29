@@ -3,21 +3,38 @@
 import React from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { DayPicker } from 'react-day-picker';
-import { format, parse, isValid } from 'date-fns';
+import { format, parse, isValid, isBefore, isAfter, startOfDay } from 'date-fns';
 import 'react-day-picker/style.css';
 
 /**
  * Compact date field with popover calendar (react-day-picker).
  * Value is always YYYY-MM-DD or empty string.
+ *
+ * Optional bounds (YYYY-MM-DD):
+ * - minDate: disable days before this date
+ * - maxDate: disable days after this date
  */
-const LedgerDateField = ({ id, value, onChange, placeholder = 'Select date', 'aria-label': ariaLabel }) => {
+const LedgerDateField = ({
+  id,
+  value,
+  onChange,
+  placeholder = 'Select date',
+  minDate,
+  maxDate,
+  'aria-label': ariaLabel,
+}) => {
   const [open, setOpen] = React.useState(false);
 
-  const selected = React.useMemo(() => {
-    if (!value) return undefined;
-    const d = parse(value, 'yyyy-MM-dd', new Date());
-    return isValid(d) ? d : undefined;
-  }, [value]);
+  const selected = React.useMemo(() => parseYmd(value), [value]);
+  const min = React.useMemo(() => parseYmd(minDate), [minDate]);
+  const max = React.useMemo(() => parseYmd(maxDate), [maxDate]);
+
+  const disabled = React.useMemo(() => {
+    const matchers = [];
+    if (min) matchers.push({ before: min });
+    if (max) matchers.push({ after: max });
+    return matchers.length ? matchers : undefined;
+  }, [min, max]);
 
   const label = selected ? format(selected, 'MMM d, yyyy') : placeholder;
 
@@ -40,10 +57,19 @@ const LedgerDateField = ({ id, value, onChange, placeholder = 'Select date', 'ar
             mode="single"
             selected={selected}
             onSelect={(day) => {
-              onChange(day ? format(day, 'yyyy-MM-dd') : '');
+              if (!day) {
+                onChange('');
+                setOpen(false);
+                return;
+              }
+              const picked = startOfDay(day);
+              if (min && isBefore(picked, startOfDay(min))) return;
+              if (max && isAfter(picked, startOfDay(max))) return;
+              onChange(format(picked, 'yyyy-MM-dd'));
               setOpen(false);
             }}
-            defaultMonth={selected || new Date()}
+            disabled={disabled}
+            defaultMonth={selected || max || min || new Date()}
           />
           <div className="ledger-date-popover__footer">
             <button
@@ -62,6 +88,12 @@ const LedgerDateField = ({ id, value, onChange, placeholder = 'Select date', 'ar
       </Popover.Portal>
     </Popover.Root>
   );
+};
+
+const parseYmd = (value) => {
+  if (!value) return undefined;
+  const d = parse(String(value), 'yyyy-MM-dd', new Date());
+  return isValid(d) ? startOfDay(d) : undefined;
 };
 
 const CalendarIcon = () => (

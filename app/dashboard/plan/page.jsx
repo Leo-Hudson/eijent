@@ -1,25 +1,25 @@
 import { redirect } from 'next/navigation';
-import OverviewPage from '@/components/member/OverviewPage';
+import PlanPage from '@/components/member/PlanPage';
 import { readSessionToken } from '@/lib/session';
 
 export const metadata = {
-  title: 'Dashboard — Eijent',
-  description: 'Your Eijent account overview.',
+  title: 'Plan — Eijent',
+  description: 'Your Eijent subscription, modules, and limits.',
   robots: { index: false, follow: false },
-  alternates: { canonical: '/dashboard' },
+  alternates: { canonical: '/dashboard/plan' },
 };
 
-export default async function DashboardPage() {
+export default async function PlanRoute() {
   const token = await readSessionToken();
   if (!token) {
-    redirect('/login?next=/dashboard');
+    redirect('/login?next=/dashboard/plan');
   }
 
   return (
     <div className="dash-page">
       <div className="dash-page__glow" aria-hidden="true" />
       <div className="dash-shell dash-shell--member">
-        <OverviewPage />
+        <PlanPage />
       </div>
     </div>
   );

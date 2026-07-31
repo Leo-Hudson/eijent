@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
-import { coreMe, slimMember } from '@/lib/coreAuth';
+import {
+  coreMe,
+  coreUnavailablePayload,
+  isCoreUnavailable,
+  slimMember,
+} from '@/lib/coreAuth';
 import { clearSessionCookie, getRequestToken } from '@/lib/session';
 
 const CORE_API_BASE_URL = process.env.CORE_API_BASE_URL || '';
@@ -168,32 +173,74 @@ const fetchSubAccounts = async (memberId) => {
   }));
 };
 
+const fetchPayments = async (memberId) => {
+  const query =
+    `where[member][equals]=${encodeURIComponent(memberId)}` +
+    `&depth=0&limit=10&sort=-paymentDate`;
+  const res = await fetch(`${CORE_API_BASE_URL}/api/payments?${query}`, {
+    headers: coreHeaders(),
+    cache: 'no-store',
+  });
+  if (!res.ok) return [];
+  const data = await res.json().catch(() => ({}));
+  return (data?.docs || []).map((p) => ({
+    id: p?.id,
+    amount: typeof p?.amount === 'number' ? p.amount : null,
+    currency: p?.currency || null,
+    status: p?.status || null,
+    paymentDate: p?.paymentDate || null,
+    paymentMethod: p?.paymentMethod || null,
+  }));
+};
+
 export const GET = async (req) => {
   const token = getRequestToken(req);
   if (!token) {
     return NextResponse.json({ authenticated: false }, { status: 401 });
   }
 
-  const user = await coreMe(token);
+  let user;
+  try {
+    user = await coreMe(token);
+  } catch (err) {
+    if (isCoreUnavailable(err)) {
+      return NextResponse.json(coreUnavailablePayload(), { status: 503 });
+    }
+    throw err;
+  }
+
   if (!user?.id) {
     const res = NextResponse.json({ authenticated: false }, { status: 401 });
     clearSessionCookie(res);
     return res;
   }
 
-  const [subscriptions, subAccounts, credits, entitlements] = await Promise.all([
-    fetchSubscriptions(user.id),
-    fetchSubAccounts(user.id),
-    fetchCreditUsage(user.id),
-    fetchEntitlements(user.id),
-  ]);
+  try {
+    const [subscriptions, subAccounts, credits, entitlements, payments] = await Promise.all([
+      fetchSubscriptions(user.id),
+      fetchSubAccounts(user.id),
+      fetchCreditUsage(user.id),
+      fetchEntitlements(user.id),
+      fetchPayments(user.id),
+    ]);
 
-  return NextResponse.json({
-    authenticated: true,
-    member: slimMember(user),
-    subscriptions,
-    subAccounts,
-    credits,
-    entitlements,
-  });
+    return NextResponse.json({
+      authenticated: true,
+      member: slimMember(user),
+      subscriptions,
+      subAccounts,
+      credits,
+      entitlements,
+      payments,
+    });
+  } catch (err) {
+    if (isCoreUnavailable(err) || err?.cause?.code === 'ECONNREFUSED') {
+      return NextResponse.json(coreUnavailablePayload(), { status: 503 });
+    }
+    // Network failures from undici/node fetch often surface as TypeError
+    if (err instanceof TypeError || /fetch|ECONNREFUSED|ENOTFOUND|network/i.test(String(err?.message))) {
+      return NextResponse.json(coreUnavailablePayload(), { status: 503 });
+    }
+    throw err;
+  }
 };

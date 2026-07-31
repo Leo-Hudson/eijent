@@ -9,6 +9,7 @@ import { MEMBER_NAV, initials, displayName, STATUS_TONE } from '@/lib/memberDisp
 export default function MemberShell({
   active,
   member,
+  offline = false,
   children,
 }) {
   const [signingOut, setSigningOut] = React.useState(false);
@@ -39,7 +40,9 @@ export default function MemberShell({
             </span>
             <div>
               <p className="member-sidebar__name">{name}</p>
-              {status ? (
+              {offline ? (
+                <span className="dash-badge is-warn">Unavailable</span>
+              ) : status ? (
                 <span className={`dash-badge ${tone}`}>{status}</span>
               ) : null}
             </div>

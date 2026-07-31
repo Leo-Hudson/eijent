@@ -2,6 +2,7 @@
 
 import React from 'react';
 import * as yup from 'yup';
+import { accountNameSchema, ACCOUNT_NAME_HINT, normalizeAccountNameInput } from '@/lib/accountName';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -11,11 +12,7 @@ const detailsSchema = yup.object({
     .trim()
     .required('Company name is required.')
     .min(2, 'Company name must be at least 2 characters.'),
-  accountName: yup
-    .string()
-    .trim()
-    .required('Account name is required.')
-    .min(2, 'Account name must be at least 2 characters.'),
+  accountName: accountNameSchema,
   firstName: yup
     .string()
     .trim()
@@ -66,7 +63,8 @@ const SignupForm = () => {
 
   const onChange = (e) => {
     const { name, value } = e.target;
-    setValues((prev) => ({ ...prev, [name]: value }));
+    const nextValue = name === 'accountName' ? normalizeAccountNameInput(value) : value;
+    setValues((prev) => ({ ...prev, [name]: nextValue }));
     if (fieldErrors[name]) {
       setFieldErrors((prev) => {
         const next = { ...prev };
@@ -192,13 +190,20 @@ const SignupForm = () => {
             id="accountName"
             name="accountName"
             type="text"
-            autoComplete="organization"
-            placeholder="Acme workspace"
+            autoComplete="off"
+            spellCheck={false}
+            inputMode="text"
+            placeholder="acme-workspace"
             value={values.accountName}
             onChange={onChange}
             aria-invalid={!!fieldErrors.accountName}
-            aria-describedby={fieldErrors.accountName ? 'err-accountName' : undefined}
+            aria-describedby={
+              fieldErrors.accountName ? 'err-accountName accountName-hint' : 'accountName-hint'
+            }
           />
+          <p className="signup-field-hint" id="accountName-hint">
+            {ACCOUNT_NAME_HINT}
+          </p>
           {fieldErrors.accountName && (
             <p className="signup-field-error" id="err-accountName" role="alert">
               {fieldErrors.accountName}

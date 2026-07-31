@@ -2,6 +2,7 @@
 
 import React from 'react';
 import MemberShell from '@/components/member/MemberShell';
+import MemberErrorState from '@/components/member/MemberErrorState';
 import LedgerSelect from '@/components/ledger/LedgerSelect';
 import { useMemberDashboard } from '@/hooks/useMemberDashboard';
 import { displayName, STATUS_TONE } from '@/lib/memberDisplay';
@@ -42,9 +43,9 @@ function statusTone(status) {
 
 function creditsHref(userKey) {
   const params = new URLSearchParams();
+  params.set('tab', 'ledger');
   if (userKey) params.set('user', userKey);
-  const qs = params.toString();
-  return qs ? `/dashboard/credits?${qs}` : '/dashboard/credits';
+  return `/dashboard/credits?${params.toString()}`;
 }
 
 function buildPeople({ member, subAccounts, credits, q, status, sort }) {
@@ -98,7 +99,7 @@ function buildPeople({ member, subAccounts, credits, q, status, sort }) {
 }
 
 export default function TeamPage() {
-  const { loading, error, data } = useMemberDashboard();
+  const { loading, error, errorCode, data, reload } = useMemberDashboard();
   const [q, setQ] = React.useState('');
   const [status, setStatus] = React.useState('');
   const [sort, setSort] = React.useState('name');
@@ -118,10 +119,8 @@ export default function TeamPage() {
 
   if (error) {
     return (
-      <MemberShell active="team" member={null}>
-        <div className="dash-error" role="alert">
-          <p>{error}</p>
-        </div>
+      <MemberShell active="team" member={data?.member || null} offline={errorCode === 'core_unavailable'}>
+        <MemberErrorState message={error} code={errorCode} onRetry={reload} />
       </MemberShell>
     );
   }

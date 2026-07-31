@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import * as yup from 'yup';
+import { accountNameSchema } from '@/lib/accountName';
 
 const CORE_API_BASE_URL = process.env.CORE_API_BASE_URL || '';
 const CORE_API_KEY = process.env.CORE_API_KEY || '';
@@ -9,7 +10,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const signupSchema = yup.object({
   companyName: yup.string().trim().required().min(2),
-  accountName: yup.string().trim().required().min(2),
+  accountName: accountNameSchema,
   firstName: yup.string().trim().required().min(1),
   lastName: yup.string().trim().required().min(1),
   email: yup.string().trim().required().matches(EMAIL_RE),

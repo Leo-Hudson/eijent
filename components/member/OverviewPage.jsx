@@ -2,6 +2,8 @@
 
 import React from 'react';
 import MemberShell from '@/components/member/MemberShell';
+import MemberErrorState from '@/components/member/MemberErrorState';
+import MemberSoftActions from '@/components/member/MemberSoftActions';
 import { useMemberDashboard, deriveWallet } from '@/hooks/useMemberDashboard';
 import {
   displayName,
@@ -23,20 +25,9 @@ function Loading() {
   );
 }
 
-function ErrorState({ message, onRetry }) {
-  return (
-    <div className="dash-error" role="alert">
-      <p>{message}</p>
-      <button type="button" className="signup-submit signup-submit--inline" onClick={onRetry}>
-        Try again
-      </button>
-    </div>
-  );
-}
-
 /** Short glance view: available credits, plan, key limits, team size. */
 export default function OverviewPage() {
-  const { loading, error, data } = useMemberDashboard();
+  const { loading, error, errorCode, data, reload } = useMemberDashboard();
 
   if (loading) {
     return (
@@ -48,8 +39,8 @@ export default function OverviewPage() {
 
   if (error) {
     return (
-      <MemberShell active="overview" member={null}>
-        <ErrorState message={error} onRetry={() => window.location.reload()} />
+      <MemberShell active="overview" member={data?.member || null} offline={errorCode === 'core_unavailable'}>
+        <MemberErrorState message={error} code={errorCode} onRetry={reload} />
       </MemberShell>
     );
   }
@@ -90,16 +81,18 @@ export default function OverviewPage() {
           </div>
         ) : null}
 
+        <MemberSoftActions showCredits />
+
         <section className="overview-credits dash-card">
           <div className="overview-credits__pair">
             <div className="overview-credits__stat">
-              <span className="overview-credits__label">Available</span>
+              <span className="overview-credits__label">Credits Available</span>
               <span className="overview-credits__value">
                 {balance != null ? balance.toLocaleString() : '—'}
               </span>
               {allocation != null ? (
                 <span className="overview-credits__hint">
-                  Plan grant {allocation.toLocaleString()}
+                  Plan grant {allocation.toLocaleString()} credits
                   {prettyCycle(primarySub?.creditResetCycle || wallet?.resetCycle)
                     ? ` · ${prettyCycle(primarySub?.creditResetCycle || wallet?.resetCycle)}`
                     : ''}
@@ -111,7 +104,7 @@ export default function OverviewPage() {
             </div>
             <div className="overview-credits__divider" aria-hidden="true" />
             <div className="overview-credits__stat">
-              <span className="overview-credits__label">Used this cycle</span>
+              <span className="overview-credits__label">Credits used this cycle</span>
               <span className="overview-credits__value overview-credits__value--spent">
                 {totalDeducted != null ? totalDeducted.toLocaleString() : '—'}
               </span>
@@ -130,7 +123,7 @@ export default function OverviewPage() {
             </div>
           </div>
           <a href="/dashboard/credits" className="dash-link-btn">
-            View history
+            View usage & history
           </a>
         </section>
 

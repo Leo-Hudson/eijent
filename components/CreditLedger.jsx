@@ -4,12 +4,13 @@ import React from 'react';
 import { format, parseISO, isValid } from 'date-fns';
 import LedgerSelect from '@/components/ledger/LedgerSelect';
 import LedgerDateField from '@/components/ledger/LedgerDateField';
+import { ledgerTypeLabel, prettyServiceLabel } from '@/lib/memberDisplay';
 
 const TYPE_OPTIONS = [
   { value: '', label: 'All types' },
-  { value: 'reset', label: 'Monthly Allocation' },
-  { value: 'grant', label: 'Manual Adjustment' },
-  { value: 'deduct', label: 'Usage (deductions)' },
+  { value: 'reset', label: 'Allocation' },
+  { value: 'grant', label: 'Manual / Purchased' },
+  { value: 'deduct', label: 'Usage' },
 ];
 
 const SORT_OPTIONS = [
@@ -58,27 +59,6 @@ const formatCredits = (amount) => {
   if (n > 0) return `+${abs}`;
   if (n < 0) return `−${abs}`;
   return '0';
-};
-
-/** Human labels for raw feature keys in table + Service filter. */
-const prettyServiceLabel = (key) => {
-  if (!key) return '—';
-  const raw = String(key);
-  if (raw.startsWith('credit_package:')) return 'Credit package';
-  if (raw === 'entity_overage_maxWorkspaces') return 'Workspace overage';
-  if (raw === 'entity_overage_maxTeamMembers') return 'Seat overage';
-  if (raw.startsWith('entity_overage_')) {
-    const field = raw.slice('entity_overage_'.length);
-    return `${field.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase()).trim()} overage`;
-  }
-  if (raw.includes('_') || raw.includes(':')) {
-    return raw
-      .replace(/[:_]+/g, ' ')
-      .replace(/([a-z])([A-Z])/g, '$1 $2')
-      .replace(/\b\w/g, (c) => c.toUpperCase())
-      .trim();
-  }
-  return raw;
 };
 
 const summarizeDocs = (docs) => {
@@ -168,10 +148,53 @@ const resolveWorkspaceLabel = (row) => {
   return row?.workspaceName || row?.workspaceId || null;
 };
 
-const buildLedgerParams = (applied, page) => {
+const PAGE_SIZE_OPTIONS = [
+  { value: '8', label: '8' },
+  { value: '16', label: '16' },
+  { value: '24', label: '24' },
+  { value: '50', label: '50' },
+];
+
+function CopyTextButton({ text, label = 'Copy' }) {
+  const [copied, setCopied] = React.useState(false);
+  if (!text) return null;
+  return (
+    <button
+      type="button"
+      className="ledger-copy-btn"
+      onClick={async (e) => {
+        e.stopPropagation();
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          window.setTimeout(() => setCopied(false), 1200);
+        } catch {
+          // ignore
+        }
+      }}
+    >
+      {copied ? 'Copied' : label}
+    </button>
+  );
+}
+
+const InfoIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+    <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeWidth="1.4" />
+    <path
+      d="M8 7.25v4"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+    />
+    <circle cx="8" cy="5.1" r="0.85" fill="currentColor" />
+  </svg>
+);
+
+const buildLedgerParams = (applied, page, limit = 8) => {
   const params = new URLSearchParams();
   params.set('page', String(page));
-  params.set('limit', '50');
+  params.set('limit', String(limit));
   params.set('sort', applied.sort || 'newest');
   if (applied.from) params.set('from', dayStartIso(applied.from));
   if (applied.to) params.set('to', dayEndIso(applied.to));
@@ -196,6 +219,8 @@ const CreditLedger = ({ embedded = false }) => {
   const [filters, setFilters] = React.useState(readInitialFilters);
   const [applied, setApplied] = React.useState(readInitialFilters);
   const [page, setPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState(8);
+  const [expandedId, setExpandedId] = React.useState(null);
   const [users, setUsers] = React.useState([]);
   const [ownerId, setOwnerId] = React.useState(null);
   const [showMoreFilters, setShowMoreFilters] = React.useState(() => {
@@ -256,7 +281,7 @@ const CreditLedger = ({ embedded = false }) => {
     (async () => {
       setState((prev) => ({ ...prev, loading: true, error: '' }));
       try {
-        const params = buildLedgerParams(applied, page);
+        const params = buildLedgerParams(applied, page, pageSize);
         const res = await fetch(`/api/credits/ledger?${params}`, {
           cache: 'no-store',
           signal: controller.signal,
@@ -280,17 +305,22 @@ const CreditLedger = ({ embedded = false }) => {
               data.docs.length > 0)) &&
           (data.totalDocs || 0) > 0
         ) {
-          const all = Array.isArray(data.docs) ? [...data.docs] : [];
-          const totalPages = Math.min(data.totalPages || 1, 50);
-          for (let p = 2; p <= totalPages; p += 1) {
-            const moreParams = buildLedgerParams(applied, p);
-            const moreRes = await fetch(`/api/credits/ledger?${moreParams}`, {
+          const all = [];
+          let summaryPage = 1;
+          let summaryTotalPages = 1;
+          const summaryLimit = 100;
+          const maxSummaryPages = 20;
+          while (summaryPage <= summaryTotalPages && summaryPage <= maxSummaryPages) {
+            const summaryParams = buildLedgerParams(applied, summaryPage, summaryLimit);
+            const moreRes = await fetch(`/api/credits/ledger?${summaryParams}`, {
               cache: 'no-store',
               signal: controller.signal,
             });
             const moreData = await moreRes.json().catch(() => ({}));
             if (!moreRes.ok) break;
             all.push(...(moreData.docs || []));
+            summaryTotalPages = moreData.totalPages || 1;
+            summaryPage += 1;
           }
           summary = summarizeDocs(all);
         }
@@ -321,7 +351,11 @@ const CreditLedger = ({ embedded = false }) => {
     })();
 
     return () => controller.abort();
-  }, [applied, page]);
+  }, [applied, page, pageSize]);
+
+  React.useEffect(() => {
+    setExpandedId(null);
+  }, [applied, page, pageSize]);
 
   const chips = React.useMemo(() => {
     const list = [];
@@ -433,14 +467,14 @@ const CreditLedger = ({ embedded = false }) => {
       lines.push(
         [
           when?.full || '',
-          row.displayType || row.type || '',
+          ledgerTypeLabel(row),
           resolveWorkspaceLabel(row) || '',
           row.service || '',
           subLabel,
           sub?.email || '',
           formatCredits(row.amount),
           typeof row.balanceAfter === 'number' ? row.balanceAfter : '',
-          row.reference || '',
+          row.id || '',
           row.description || '',
         ]
           .map(csvEscape)
@@ -474,7 +508,7 @@ const CreditLedger = ({ embedded = false }) => {
         <article key={row.id} className="ledger-card">
           <div className="ledger-card__top">
             <div>
-              <span className="ledger-card__type">{row.displayType || row.type}</span>
+              <span className="ledger-card__type">{ledgerTypeLabel(row)}</span>
               <span className="ledger-card__when">{when?.full || '—'}</span>
             </div>
             <span className={amt > 0 ? 'is-credit' : amt < 0 ? 'is-debit' : ''}>
@@ -507,6 +541,13 @@ const CreditLedger = ({ embedded = false }) => {
               </dd>
             </div>
           </dl>
+          {row.id ? (
+            <div className="ledger-card__ref">
+              <span className="ledger-card__ref-label">Reference</span>
+              <code className="mono ledger-card__ref-value">{row.id}</code>
+              <CopyTextButton text={String(row.id)} />
+            </div>
+          ) : null}
           {row.description ? <p className="ledger-card__desc">{row.description}</p> : null}
         </article>
       );
@@ -545,9 +586,9 @@ const CreditLedger = ({ embedded = false }) => {
       ) : (
         <div className="ledger-embedded-head">
           <div>
-            <h1 className="section-page-title">Credits</h1>
+            <h2 className="dash-card__title" style={{ margin: 0 }}>Ledger</h2>
             <p className="section-page-sub">
-              Available balance, plan grant, and full movement history.
+              Full movement history with filters, sort, and CSV export.
             </p>
           </div>
           <button
@@ -743,8 +784,8 @@ const CreditLedger = ({ embedded = false }) => {
               <th>Who</th>
               <th>Amount</th>
               <th>Balance after</th>
-              <th>Reference</th>
-              <th>Description</th>
+              <th title="Credit transaction ID">Reference</th>
+              <th aria-label="Description" />
             </tr>
           </thead>
           <tbody>
@@ -768,45 +809,87 @@ const CreditLedger = ({ embedded = false }) => {
               const when = formatDateTime(row.createdAt);
               const sub = resolveSubAccount(row, ownerId);
               const workspaceLabel = resolveWorkspaceLabel(row);
+              const txnId = row.id ? String(row.id) : '';
+              const desc = row.description || '';
+              const open = expandedId === row.id;
               return (
-                <tr key={row.id}>
-                  <td className="ledger-date">
-                    {when ? (
-                      <>
-                        <span className="ledger-date__day">{when.date}</span>
-                        <span className="ledger-date__time">{when.time}</span>
-                      </>
-                    ) : (
-                      '-'
-                    )}
-                  </td>
-                  <td>{row.displayType || row.type}</td>
-                  <td>{workspaceLabel || '-'}</td>
-                  <td>{prettyServiceLabel(row.service)}</td>
-                  <td>
-                    {sub ? (
-                      <div className="ledger-user">
-                        <span>
-                          {sub.name}
-                          {sub.isOwner ? (
-                            <span className="ledger-owner-tag">Owner</span>
-                          ) : null}
-                        </span>
-                        {sub.email && <span className="ledger-user__email mono">{sub.email}</span>}
-                      </div>
-                    ) : (
-                      '-'
-                    )}
-                  </td>
-                  <td className={amt > 0 ? 'is-credit' : amt < 0 ? 'is-debit' : ''}>
-                    {formatCredits(amt)}
-                  </td>
-                  <td>
-                    {typeof row.balanceAfter === 'number' ? row.balanceAfter.toLocaleString() : '-'}
-                  </td>
-                  <td className="mono ledger-ref">{row.reference || '-'}</td>
-                  <td>{row.description || '-'}</td>
-                </tr>
+                <React.Fragment key={row.id}>
+                  <tr className={open ? 'is-expanded' : undefined}>
+                    <td className="ledger-date">
+                      {when ? (
+                        <>
+                          <span className="ledger-date__day">{when.date}</span>
+                          <span className="ledger-date__time">{when.time}</span>
+                        </>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td>{ledgerTypeLabel(row)}</td>
+                    <td>{workspaceLabel || '-'}</td>
+                    <td>{prettyServiceLabel(row.service)}</td>
+                    <td>
+                      {sub ? (
+                        <div className="ledger-user">
+                          <span>
+                            {sub.name}
+                            {sub.isOwner ? (
+                              <span className="ledger-owner-tag">Owner</span>
+                            ) : null}
+                          </span>
+                          {sub.email && (
+                            <span className="ledger-user__email mono">{sub.email}</span>
+                          )}
+                        </div>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td className={amt > 0 ? 'is-credit' : amt < 0 ? 'is-debit' : ''}>
+                      {formatCredits(amt)}
+                    </td>
+                    <td>
+                      {typeof row.balanceAfter === 'number'
+                        ? row.balanceAfter.toLocaleString()
+                        : '-'}
+                    </td>
+                    <td>
+                      {txnId ? (
+                        <span className="mono ledger-ref">{txnId}</span>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td className="ledger-actions-cell">
+                      {desc ? (
+                        <button
+                          type="button"
+                          className={`ledger-details-btn${open ? ' is-open' : ''}`}
+                          aria-expanded={open}
+                          aria-label={open ? 'Hide description' : 'Show description'}
+                          title={open ? 'Hide description' : 'Show description'}
+                          onClick={() =>
+                            setExpandedId((id) => (id === row.id ? null : row.id))
+                          }
+                        >
+                          <InfoIcon />
+                        </button>
+                      ) : null}
+                    </td>
+                  </tr>
+                  {open && desc ? (
+                    <tr className="ledger-detail-row">
+                      <td colSpan={9}>
+                        <div className="ledger-detail">
+                          <div className="ledger-detail__block">
+                            <span className="ledger-detail__label">Description</span>
+                            <p className="ledger-detail__text">{desc}</p>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : null}
+                </React.Fragment>
               );
             })}
           </tbody>
@@ -827,12 +910,29 @@ const CreditLedger = ({ embedded = false }) => {
       </div>
 
       <div className="ledger-pager">
-        <span>
-          {state.loading && state.docs.length === 0
-            ? 'Loading…'
-            : `${state.totalDocs} entr${state.totalDocs === 1 ? 'y' : 'ies'}`}
-          {!state.loading && state.totalPages > 1 ? ` · page ${page} of ${state.totalPages}` : ''}
-        </span>
+        <div className="ledger-pager__meta">
+          <span>
+            {state.loading && state.docs.length === 0
+              ? 'Loading…'
+              : `${state.totalDocs} entr${state.totalDocs === 1 ? 'y' : 'ies'}`}
+            {!state.loading && state.totalPages > 1
+              ? ` · page ${page} of ${state.totalPages}`
+              : ''}
+          </span>
+          <label className="ledger-pager__size">
+            <span>Per page</span>
+            <LedgerSelect
+              aria-label="Rows per page"
+              value={String(pageSize)}
+              onValueChange={(next) => {
+                const size = Number(next) || 8;
+                setPageSize(size);
+                setPage(1);
+              }}
+              options={PAGE_SIZE_OPTIONS}
+            />
+          </label>
+        </div>
         <div className="ledger-pager__btns">
           <button
             type="button"

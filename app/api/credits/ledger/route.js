@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
-import { coreMe } from '@/lib/coreAuth';
+import {
+  coreMe,
+  coreUnavailablePayload,
+  isCoreUnavailable,
+} from '@/lib/coreAuth';
 import { clearSessionCookie, getRequestToken } from '@/lib/session';
 
 const CORE_API_BASE_URL = process.env.CORE_API_BASE_URL || '';
@@ -32,10 +36,19 @@ export const GET = async (req) => {
   }
 
   if (!CORE_API_BASE_URL || !CORE_API_KEY) {
-    return NextResponse.json({ error: 'Ledger is not configured.' }, { status: 503 });
+    return NextResponse.json(coreUnavailablePayload(), { status: 503 });
   }
 
-  const user = await coreMe(token);
+  let user;
+  try {
+    user = await coreMe(token);
+  } catch (err) {
+    if (isCoreUnavailable(err)) {
+      return NextResponse.json(coreUnavailablePayload(), { status: 503 });
+    }
+    throw err;
+  }
+
   if (!user?.id) {
     const res = NextResponse.json({ authenticated: false }, { status: 401 });
     clearSessionCookie(res);
@@ -68,6 +81,6 @@ export const GET = async (req) => {
     }
     return NextResponse.json({ authenticated: true, ...data });
   } catch {
-    return NextResponse.json({ error: 'Unable to load credit ledger.' }, { status: 502 });
+    return NextResponse.json(coreUnavailablePayload(), { status: 503 });
   }
 };

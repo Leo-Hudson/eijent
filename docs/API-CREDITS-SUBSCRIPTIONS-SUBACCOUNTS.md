@@ -10,8 +10,8 @@ API reference for the **product web app** talking to **bps-core**.
 Authorization: Bearer <API_KEY>
 ```
 
-**Primary identifier:** `memberId` (the owner account).  
-You do **not** need pricing-plan or subscription ids for normal reads; Core resolves the owner’s active subscription from `memberId`.
+**Primary identifier:** `memberId` / `id` (owner account id), or `email` on overview.  
+You do **not** need pricing-plan or subscription ids for normal reads; Core resolves the owner’s active subscription from the member.
 
 **Error shape (custom routes)**
 
@@ -27,17 +27,23 @@ You do **not** need pricing-plan or subscription ids for normal reads; Core reso
 
 ## 1. Start here — full owner snapshot
 
-### `GET /api/account/overview?memberId=<uuid>`
+### `GET /api/account/overview?memberId=<uuid>`  
+### `GET /api/account/overview?id=<uuid>`  
+### `GET /api/account/overview?email=<work-email>`
 
 One call for everything the product needs to render plan, credits, limits, and team for an owner.
 
 **Auth:** API key with `subscriptions:read` for that member’s tenant.
 
-**Query**
+**Query** (provide **at least one**)
 
 | Param | Required | Description |
 |---|---|---|
-| `memberId` | yes | Owner member id |
+| `memberId` | one of | Owner member id |
+| `id` | one of | Alias for `memberId` |
+| `email` | one of | Owner work email (tenant-scoped for API keys) |
+
+If both an id and `email` are sent, they must refer to the same member.
 
 **Response**
 
@@ -274,6 +280,7 @@ Often used with credit-pack purchase.
 
 ```http
 GET /api/account/overview?memberId=<ownerId>
+# or: ?id=<ownerId>  /  ?email=<ownerEmail>
 ```
 
 ### Run a billable feature
@@ -306,7 +313,7 @@ Report with `GET /api/credits/usage` or ledger filters.
 
 | Goal | Endpoint |
 |---|---|
-| **Everything for an owner** | `GET /api/account/overview?memberId=` |
+| **Everything for an owner** | `GET /api/account/overview?memberId=` / `?id=` / `?email=` |
 | Balance only | `GET /api/credits/balance` |
 | Usage breakdown | `GET /api/credits/usage` |
 | Ledger history | `GET /api/credits/ledger` |
@@ -319,4 +326,4 @@ Report with `GET /api/credits/usage` or ledger filters.
 
 ---
 
-*Audience: Eijent product / web app. Identify owners by `memberId`. Use `/api/account/overview` as the default read.*
+*Audience: Eijent product / web app. Identify owners by `memberId` / `id` / `email` on overview. Use `/api/account/overview` as the default read.*

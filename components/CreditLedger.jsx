@@ -504,16 +504,34 @@ const CreditLedger = ({ embedded = false }) => {
       const when = formatDateTime(row.createdAt);
       const sub = resolveSubAccount(row, ownerId);
       const workspaceLabel = resolveWorkspaceLabel(row);
+      const txnId = row.id ? String(row.id) : '';
+      const desc = row.description || '';
+      const hasDetails = Boolean(txnId || desc);
+      const open = expandedId === row.id;
       return (
-        <article key={row.id} className="ledger-card">
+        <article key={row.id} className={`ledger-card${open ? ' is-expanded' : ''}`}>
           <div className="ledger-card__top">
             <div>
               <span className="ledger-card__type">{ledgerTypeLabel(row)}</span>
               <span className="ledger-card__when">{when?.full || '—'}</span>
             </div>
-            <span className={amt > 0 ? 'is-credit' : amt < 0 ? 'is-debit' : ''}>
-              {formatCredits(amt)}
-            </span>
+            <div className="ledger-card__top-end">
+              <span className={amt > 0 ? 'is-credit' : amt < 0 ? 'is-debit' : ''}>
+                {formatCredits(amt)}
+              </span>
+              {hasDetails ? (
+                <button
+                  type="button"
+                  className={`ledger-details-btn${open ? ' is-open' : ''}`}
+                  aria-expanded={open}
+                  aria-label={open ? 'Hide details' : 'Show details'}
+                  title={open ? 'Hide details' : 'Show details'}
+                  onClick={() => setExpandedId((id) => (id === row.id ? null : row.id))}
+                >
+                  <InfoIcon />
+                </button>
+              ) : null}
+            </div>
           </div>
           <dl className="ledger-card__meta">
             <div>
@@ -541,14 +559,28 @@ const CreditLedger = ({ embedded = false }) => {
               </dd>
             </div>
           </dl>
-          {row.id ? (
-            <div className="ledger-card__ref">
-              <span className="ledger-card__ref-label">Reference</span>
-              <code className="mono ledger-card__ref-value">{row.id}</code>
-              <CopyTextButton text={String(row.id)} />
+          {open && hasDetails ? (
+            <div className="ledger-detail ledger-detail--card">
+              {txnId ? (
+                <div className="ledger-detail__block">
+                  <span className="ledger-detail__label">
+                    Reference
+                    <span className="ledger-detail__hint">Transaction ID</span>
+                  </span>
+                  <div className="ledger-detail__ref">
+                    <code className="mono">{txnId}</code>
+                    <CopyTextButton text={txnId} />
+                  </div>
+                </div>
+              ) : null}
+              {desc ? (
+                <div className="ledger-detail__block">
+                  <span className="ledger-detail__label">Description</span>
+                  <p className="ledger-detail__text">{desc}</p>
+                </div>
+              ) : null}
             </div>
           ) : null}
-          {row.description ? <p className="ledger-card__desc">{row.description}</p> : null}
         </article>
       );
     });
@@ -784,21 +816,20 @@ const CreditLedger = ({ embedded = false }) => {
               <th>Who</th>
               <th>Amount</th>
               <th>Balance after</th>
-              <th title="Credit transaction ID">Reference</th>
-              <th aria-label="Description" />
+              <th aria-label="Details" />
             </tr>
           </thead>
           <tbody>
             {state.loading && state.docs.length === 0 && (
               <tr>
-                <td colSpan={9} className="ledger-empty">
+                <td colSpan={8} className="ledger-empty">
                   Loading ledger…
                 </td>
               </tr>
             )}
             {!state.loading && state.docs.length === 0 && (
               <tr>
-                <td colSpan={9} className="ledger-empty">
+                <td colSpan={8} className="ledger-empty">
                   No credit movements yet. Activity appears here when credits are granted,
                   reset, or spent.
                 </td>
@@ -811,6 +842,7 @@ const CreditLedger = ({ embedded = false }) => {
               const workspaceLabel = resolveWorkspaceLabel(row);
               const txnId = row.id ? String(row.id) : '';
               const desc = row.description || '';
+              const hasDetails = Boolean(txnId || desc);
               const open = expandedId === row.id;
               return (
                 <React.Fragment key={row.id}>
@@ -853,21 +885,14 @@ const CreditLedger = ({ embedded = false }) => {
                         ? row.balanceAfter.toLocaleString()
                         : '-'}
                     </td>
-                    <td>
-                      {txnId ? (
-                        <span className="mono ledger-ref">{txnId}</span>
-                      ) : (
-                        '-'
-                      )}
-                    </td>
                     <td className="ledger-actions-cell">
-                      {desc ? (
+                      {hasDetails ? (
                         <button
                           type="button"
                           className={`ledger-details-btn${open ? ' is-open' : ''}`}
                           aria-expanded={open}
-                          aria-label={open ? 'Hide description' : 'Show description'}
-                          title={open ? 'Hide description' : 'Show description'}
+                          aria-label={open ? 'Hide details' : 'Show details'}
+                          title={open ? 'Hide details' : 'Show details'}
                           onClick={() =>
                             setExpandedId((id) => (id === row.id ? null : row.id))
                           }
@@ -877,14 +902,28 @@ const CreditLedger = ({ embedded = false }) => {
                       ) : null}
                     </td>
                   </tr>
-                  {open && desc ? (
+                  {open && hasDetails ? (
                     <tr className="ledger-detail-row">
-                      <td colSpan={9}>
+                      <td colSpan={8}>
                         <div className="ledger-detail">
-                          <div className="ledger-detail__block">
-                            <span className="ledger-detail__label">Description</span>
-                            <p className="ledger-detail__text">{desc}</p>
-                          </div>
+                          {txnId ? (
+                            <div className="ledger-detail__block">
+                              <span className="ledger-detail__label">
+                                Reference
+                                <span className="ledger-detail__hint">Transaction ID</span>
+                              </span>
+                              <div className="ledger-detail__ref">
+                                <code className="mono">{txnId}</code>
+                                <CopyTextButton text={txnId} />
+                              </div>
+                            </div>
+                          ) : null}
+                          {desc ? (
+                            <div className="ledger-detail__block">
+                              <span className="ledger-detail__label">Description</span>
+                              <p className="ledger-detail__text">{desc}</p>
+                            </div>
+                          ) : null}
                         </div>
                       </td>
                     </tr>

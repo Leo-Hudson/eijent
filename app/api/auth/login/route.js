@@ -28,6 +28,17 @@ export const POST = async (req) => {
     const { ok, status, data } = await coreLogin(clean.email, clean.password);
 
     if (!ok) {
+      if (status === 503 || data?.code === 'core_unavailable') {
+        return NextResponse.json(
+          {
+            error:
+              data?.error ||
+              'We could not sign you in right now. Please try again in a moment.',
+            code: 'core_unavailable',
+          },
+          { status: 503 },
+        );
+      }
       const detail = String(data?.errors?.[0]?.message || data?.message || '').toLowerCase();
       if (status === 403 && detail.includes('pending')) {
         return NextResponse.json(

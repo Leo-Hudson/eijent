@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import * as yup from 'yup';
+import { accountNameSchema, ACCOUNT_NAME_IN_USE } from '@/lib/accountName';
+import { isPasswordComplex, PASSWORD_COMPLEXITY_ERROR } from '@/lib/passwordRules';
 
 const CORE_API_BASE_URL = process.env.CORE_API_BASE_URL || '';
 const CORE_API_KEY = process.env.CORE_API_KEY || '';
@@ -8,11 +10,20 @@ const CORE_TENANT_ID = process.env.CORE_TENANT_ID || '';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const signupSchema = yup.object({
-  companyName: yup.string().trim().required().min(2),
-  firstName: yup.string().trim().required().min(1),
-  lastName: yup.string().trim().required().min(1),
+  companyName: yup.string().trim().required(),
+  accountName: accountNameSchema,
+  firstName: yup.string().trim().required(),
+  lastName: yup.string().trim().required(),
   email: yup.string().trim().required().matches(EMAIL_RE),
-  password: yup.string().required().min(8),
+  phone: yup
+    .string()
+    .trim()
+    .transform((v) => (v == null ? '' : String(v).trim()))
+    .default(''),
+  password: yup
+    .string()
+    .required()
+    .test('complexity', PASSWORD_COMPLEXITY_ERROR, (value) => isPasswordComplex(value)),
 });
 
 const coreHeaders = () => ({
@@ -26,6 +37,23 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const findMemberByEmail = async (email) => {
   const query =
     `where[email][equals]=${encodeURIComponent(email)}` +
+    `&where[tenant][equals]=${encodeURIComponent(CORE_TENANT_ID)}` +
+    `&limit=1&depth=0`;
+
+  const res = await fetch(`${CORE_API_BASE_URL}/api/members?${query}`, {
+    headers: coreHeaders(),
+    cache: 'no-store',
+  });
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  return data?.docs?.[0] || null;
+};
+
+/** Looks up an existing member by accountName in the Eijent tenant, or null. */
+const findMemberByAccountName = async (accountName) => {
+  const query =
+    `where[accountName][equals]=${encodeURIComponent(accountName)}` +
     `&where[tenant][equals]=${encodeURIComponent(CORE_TENANT_ID)}` +
     `&limit=1&depth=0`;
 
@@ -84,6 +112,13 @@ const readCoreError = async (response) => {
 
 const mapMemberCreateError = (status, detail) => {
   const lower = String(detail).toLowerCase();
+  if (
+    lower.includes('accountname') ||
+    lower.includes('account name') ||
+    (lower.includes('unique') && lower.includes('account'))
+  ) {
+    return { status: 409, error: ACCOUNT_NAME_IN_USE, field: 'accountName' };
+  }
   if (lower.includes('unique') || lower.includes('already') || lower.includes('duplicate')) {
     return {
       status: 409,
@@ -99,7 +134,7 @@ const mapMemberCreateError = (status, detail) => {
   return { status: 502, error: 'Failed to create account. Please try again.' };
 };
 
-const pendingReviewResponse = ({ member, companyName, message }) =>
+const pendingReviewResponse = ({ member, companyName, accountName, message }) =>
   NextResponse.json({
     success: true,
     pendingReview: true,
@@ -110,6 +145,8 @@ const pendingReviewResponse = ({ member, companyName, message }) =>
     member: {
       id: member?.id,
       companyName,
+      accountName,
+      phone: member?.phone,
       firstName: member?.firstName,
       lastName: member?.lastName,
       email: member?.email,
@@ -141,6 +178,13 @@ export const POST = async (req) => {
     }
 
     const existing = await findMemberByEmail(clean.email);
+    const accountTaken = await findMemberByAccountName(clean.accountName);
+    if (accountTaken && (!existing || accountTaken.id !== existing.id)) {
+      return NextResponse.json(
+        { error: ACCOUNT_NAME_IN_USE, field: 'accountName' },
+        { status: 409 },
+      );
+    }
 
     if (existing) {
       const status = existing.status || 'Active';
@@ -153,6 +197,10 @@ export const POST = async (req) => {
             method: 'PATCH',
             headers: coreHeaders(),
             body: JSON.stringify({
+              phone: clean.phone || '',
+              companyName: clean.companyName,
+              accountName: clean.accountName,
+              // Keep legacy metadata key in sync for older admin views until fully migrated.
               metadata: {
                 ...existingMeta,
                 companyName: clean.companyName,
@@ -161,13 +209,14 @@ export const POST = async (req) => {
           });
         } catch (patchErr) {
           if (process.env.DEBUG_LOGS === '1') {
-            console.warn('[signup] company refresh skipped', patchErr);
+            console.warn('[signup] profile refresh skipped', patchErr);
           }
         }
 
         return pendingReviewResponse({
-          member: { ...existing, status: 'Pending' },
+          member: { ...existing, status: 'Pending', phone: clean.phone || '' },
           companyName: clean.companyName,
+          accountName: clean.accountName,
           message:
             'Your account is still pending review. We updated your details. You will be able to sign in after an admin assigns a plan and approves it.',
         });
@@ -190,8 +239,12 @@ export const POST = async (req) => {
         password: clean.password,
         firstName: clean.firstName,
         lastName: clean.lastName,
+        phone: clean.phone || '',
+        companyName: clean.companyName,
+        accountName: clean.accountName,
         tenant: CORE_TENANT_ID,
         status: 'Pending',
+        // Keep legacy metadata key for older tooling during transition.
         metadata: {
           companyName: clean.companyName,
         },
@@ -204,7 +257,10 @@ export const POST = async (req) => {
         console.error('[signup] Core members create failed', { status: createRes.status, detail });
       }
       const mapped = mapMemberCreateError(createRes.status, detail);
-      return NextResponse.json({ error: mapped.error }, { status: mapped.status });
+      return NextResponse.json(
+        { error: mapped.error, ...(mapped.field ? { field: mapped.field } : {}) },
+        { status: mapped.status },
+      );
     }
 
     const created = await createRes.json();
@@ -238,9 +294,11 @@ export const POST = async (req) => {
         email: clean.email,
         firstName: clean.firstName,
         lastName: clean.lastName,
+        phone: clean.phone || '',
         status: member?.status || 'Pending',
       },
       companyName: clean.companyName,
+      accountName: clean.accountName,
     });
   } catch (error) {
     if (process.env.DEBUG_LOGS === '1') console.error('[signup]', error);

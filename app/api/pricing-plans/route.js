@@ -15,6 +15,30 @@ const toSlimPlan = (doc) => {
   const priceMinor = typeof product?.price === 'number' ? product.price : null;
   const currency = product?.currency || 'USD';
 
+  const featureGroups = Array.isArray(planConfig.featureGroups)
+    ? planConfig.featureGroups
+        .filter((g) => g?.title)
+        .map((g) => ({
+          title: g.title,
+          items: Array.isArray(g.items)
+            ? g.items
+                .filter((i) => i?.label)
+                .map((i) => ({
+                  label: i.label,
+                  value: i.value || null,
+                }))
+            : [],
+        }))
+    : [];
+
+  const trialUnit = planConfig.freeTrialUnit === 'weeks' ? 'weeks' : 'days';
+  const trialRaw =
+    planConfig.enableFreeTrial && typeof planConfig.freeTrialDays === 'number'
+      ? planConfig.freeTrialDays
+      : null;
+  const freeTrialDays =
+    trialRaw == null ? null : trialUnit === 'weeks' ? trialRaw * 7 : trialRaw;
+
   return {
     id: doc.id,
     name: product?.title || doc.name,
@@ -26,10 +50,20 @@ const toSlimPlan = (doc) => {
     currency,
     pricingType: planConfig.pricingType || null,
     paymentFrequency: planConfig.paymentFrequency || null,
-    freeTrialDays: planConfig.enableFreeTrial ? planConfig.freeTrialDays || null : null,
-    features: Array.isArray(planConfig.features)
-      ? planConfig.features.map((f) => f?.feature).filter(Boolean)
-      : [],
+    planLength: planConfig.planLength || null,
+    customDuration: planConfig.customDuration ?? null,
+    customDurationUnit: planConfig.customDurationUnit || null,
+    chargeSetupFee: Boolean(planConfig.chargeSetupFee),
+    setupFeeAmount:
+      planConfig.chargeSetupFee && typeof planConfig.setupFeeAmount === 'number'
+        ? planConfig.setupFeeAmount
+        : null,
+    freeTrialDays,
+    freeTrialUnit: planConfig.enableFreeTrial ? trialUnit : null,
+    allowCancellation: planConfig.settings?.allowCancellation !== false,
+    limitOnePerCustomer: Boolean(planConfig.settings?.limitOnePerCustomer),
+    allowCustomerStartDate: Boolean(planConfig.settings?.allowCustomerStartDate),
+    featureGroups,
   };
 };
 

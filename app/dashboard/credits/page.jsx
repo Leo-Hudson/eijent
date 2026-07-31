@@ -1,25 +1,25 @@
 import { redirect } from 'next/navigation';
-import OverviewPage from '@/components/member/OverviewPage';
+import CreditsPage from '@/components/member/CreditsPage';
 import { readSessionToken } from '@/lib/session';
 
 export const metadata = {
-  title: 'Dashboard — Eijent',
-  description: 'Your Eijent account overview.',
+  title: 'Credits — Eijent',
+  description: 'Credit usage analytics and ledger.',
   robots: { index: false, follow: false },
-  alternates: { canonical: '/dashboard' },
+  alternates: { canonical: '/dashboard/credits' },
 };
 
-export default async function DashboardPage() {
+export default async function CreditsRoute() {
   const token = await readSessionToken();
   if (!token) {
-    redirect('/login?next=/dashboard');
+    redirect('/login?next=/dashboard/credits');
   }
 
   return (
     <div className="dash-page">
       <div className="dash-page__glow" aria-hidden="true" />
       <div className="dash-shell dash-shell--member">
-        <OverviewPage />
+        <CreditsPage />
       </div>
     </div>
   );

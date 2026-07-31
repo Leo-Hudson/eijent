@@ -4,12 +4,13 @@ import React from 'react';
 import { format, parseISO, isValid } from 'date-fns';
 import LedgerSelect from '@/components/ledger/LedgerSelect';
 import LedgerDateField from '@/components/ledger/LedgerDateField';
+import { ledgerTypeLabel, prettyServiceLabel } from '@/lib/memberDisplay';
 
 const TYPE_OPTIONS = [
   { value: '', label: 'All types' },
-  { value: 'reset', label: 'Monthly Allocation' },
-  { value: 'grant', label: 'Manual Adjustment' },
-  { value: 'deduct', label: 'Usage (deductions)' },
+  { value: 'reset', label: 'Allocation' },
+  { value: 'grant', label: 'Manual / Purchased' },
+  { value: 'deduct', label: 'Usage' },
 ];
 
 const SORT_OPTIONS = [
@@ -58,6 +59,27 @@ const formatCredits = (amount) => {
   if (n > 0) return `+${abs}`;
   if (n < 0) return `−${abs}`;
   return '0';
+};
+
+const summarizeDocs = (docs) => {
+  let totalCredited = 0;
+  let totalDeducted = 0;
+  let packagePurchases = 0;
+  for (const row of docs || []) {
+    const amount = Number(row.amount) || 0;
+    if (amount > 0) totalCredited += amount;
+    if (amount < 0) totalDeducted += Math.abs(amount);
+    if (String(row.featureKey || '').startsWith('credit_package:')) {
+      packagePurchases += 1;
+    }
+  }
+  return {
+    totalCredited,
+    totalDeducted,
+    packagePurchases,
+    transactionCount: (docs || []).length,
+    net: totalCredited - totalDeducted,
+  };
 };
 
 const csvEscape = (value) => {
@@ -110,7 +132,7 @@ const resolveSubAccount = (row, ownerId) => {
         ? String(row.user.id) === String(ownerId)
         : undefined;
     return {
-      name: row.user.name || '—',
+      name: row.user.name || '-',
       email: row.user.email || null,
       isOwner,
     };
@@ -118,10 +140,61 @@ const resolveSubAccount = (row, ownerId) => {
   return null;
 };
 
-const buildLedgerParams = (applied, page) => {
+/** Display label from Core workspace attribution (object or flat fields). */
+const resolveWorkspaceLabel = (row) => {
+  if (row?.workspace && typeof row.workspace === 'object') {
+    return row.workspace.name || row.workspace.id || null;
+  }
+  return row?.workspaceName || row?.workspaceId || null;
+};
+
+const PAGE_SIZE_OPTIONS = [
+  { value: '8', label: '8' },
+  { value: '16', label: '16' },
+  { value: '24', label: '24' },
+  { value: '50', label: '50' },
+];
+
+function CopyTextButton({ text, label = 'Copy' }) {
+  const [copied, setCopied] = React.useState(false);
+  if (!text) return null;
+  return (
+    <button
+      type="button"
+      className="ledger-copy-btn"
+      onClick={async (e) => {
+        e.stopPropagation();
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          window.setTimeout(() => setCopied(false), 1200);
+        } catch {
+          // ignore
+        }
+      }}
+    >
+      {copied ? 'Copied' : label}
+    </button>
+  );
+}
+
+const InfoIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+    <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeWidth="1.4" />
+    <path
+      d="M8 7.25v4"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+    />
+    <circle cx="8" cy="5.1" r="0.85" fill="currentColor" />
+  </svg>
+);
+
+const buildLedgerParams = (applied, page, limit = 8) => {
   const params = new URLSearchParams();
   params.set('page', String(page));
-  params.set('limit', '50');
+  params.set('limit', String(limit));
   params.set('sort', applied.sort || 'newest');
   if (applied.from) params.set('from', dayStartIso(applied.from));
   if (applied.to) params.set('to', dayEndIso(applied.to));
@@ -134,12 +207,27 @@ const buildLedgerParams = (applied, page) => {
   return params;
 };
 
-const CreditLedger = () => {
-  const [filters, setFilters] = React.useState(INITIAL_FILTERS);
-  const [applied, setApplied] = React.useState(INITIAL_FILTERS);
+const CreditLedger = ({ embedded = false }) => {
+  const readInitialFilters = () => {
+    if (typeof window === 'undefined') return INITIAL_FILTERS;
+    const params = new URLSearchParams(window.location.search);
+    const user = params.get('user') || params.get('subAccountId') || '';
+    if (!user) return INITIAL_FILTERS;
+    return { ...INITIAL_FILTERS, userKey: String(user) };
+  };
+
+  const [filters, setFilters] = React.useState(readInitialFilters);
+  const [applied, setApplied] = React.useState(readInitialFilters);
   const [page, setPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState(8);
+  const [expandedId, setExpandedId] = React.useState(null);
   const [users, setUsers] = React.useState([]);
   const [ownerId, setOwnerId] = React.useState(null);
+  const [showMoreFilters, setShowMoreFilters] = React.useState(() => {
+    if (typeof window === 'undefined') return false;
+    const params = new URLSearchParams(window.location.search);
+    return Boolean(params.get('user') || params.get('subAccountId'));
+  });
   const [state, setState] = React.useState({
     loading: true,
     error: '',
@@ -147,6 +235,8 @@ const CreditLedger = () => {
     totalDocs: 0,
     totalPages: 1,
     currentBalance: null,
+    allocation: null,
+    summary: null,
     featureOptions: [],
   });
 
@@ -156,7 +246,7 @@ const CreditLedger = () => {
       try {
         const res = await fetch('/api/dashboard', { cache: 'no-store' });
         if (res.status === 401) {
-          window.location.assign('/login?next=/dashboard/ledger');
+          window.location.assign('/login?next=/dashboard/credits');
           return;
         }
         const data = await res.json().catch(() => ({}));
@@ -191,18 +281,50 @@ const CreditLedger = () => {
     (async () => {
       setState((prev) => ({ ...prev, loading: true, error: '' }));
       try {
-        const params = buildLedgerParams(applied, page);
+        const params = buildLedgerParams(applied, page, pageSize);
         const res = await fetch(`/api/credits/ledger?${params}`, {
           cache: 'no-store',
           signal: controller.signal,
         });
         if (res.status === 401) {
-          window.location.assign('/login?next=/dashboard/ledger');
+          window.location.assign('/login?next=/dashboard/credits');
           return;
         }
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || 'Unable to load credit ledger.');
         if (controller.signal.aborted) return;
+
+        let summary =
+          data.summary && typeof data.summary === 'object' ? data.summary : null;
+
+        if (
+          (!summary ||
+            (summary.transactionCount === 0 &&
+              (data.totalDocs || 0) > 0 &&
+              Array.isArray(data.docs) &&
+              data.docs.length > 0)) &&
+          (data.totalDocs || 0) > 0
+        ) {
+          const all = [];
+          let summaryPage = 1;
+          let summaryTotalPages = 1;
+          const summaryLimit = 100;
+          const maxSummaryPages = 20;
+          while (summaryPage <= summaryTotalPages && summaryPage <= maxSummaryPages) {
+            const summaryParams = buildLedgerParams(applied, summaryPage, summaryLimit);
+            const moreRes = await fetch(`/api/credits/ledger?${summaryParams}`, {
+              cache: 'no-store',
+              signal: controller.signal,
+            });
+            const moreData = await moreRes.json().catch(() => ({}));
+            if (!moreRes.ok) break;
+            all.push(...(moreData.docs || []));
+            summaryTotalPages = moreData.totalPages || 1;
+            summaryPage += 1;
+          }
+          summary = summarizeDocs(all);
+        }
+
         setState({
           loading: false,
           error: '',
@@ -210,6 +332,8 @@ const CreditLedger = () => {
           totalDocs: data.totalDocs || 0,
           totalPages: data.totalPages || 1,
           currentBalance: typeof data.currentBalance === 'number' ? data.currentBalance : null,
+          allocation: typeof data.allocation === 'number' ? data.allocation : null,
+          summary,
           featureOptions: Array.isArray(data.featureOptions) ? data.featureOptions : [],
         });
       } catch (err) {
@@ -221,12 +345,17 @@ const CreditLedger = () => {
           docs: [],
           totalDocs: 0,
           totalPages: 1,
+          summary: null,
         }));
       }
     })();
 
     return () => controller.abort();
-  }, [applied, page]);
+  }, [applied, page, pageSize]);
+
+  React.useEffect(() => {
+    setExpandedId(null);
+  }, [applied, page, pageSize]);
 
   const chips = React.useMemo(() => {
     const list = [];
@@ -236,7 +365,12 @@ const CreditLedger = () => {
       const opt = TYPE_OPTIONS.find((o) => o.value === applied.type);
       list.push({ key: 'type', label: opt?.label || applied.type });
     }
-    if (applied.featureKey) list.push({ key: 'featureKey', label: `Service: ${applied.featureKey}` });
+    if (applied.featureKey) {
+      list.push({
+        key: 'featureKey',
+        label: `Service: ${prettyServiceLabel(applied.featureKey)}`,
+      });
+    }
     if (applied.userKey) {
       const u = users.find((x) => x.key === applied.userKey);
       list.push({ key: 'userKey', label: `Sub-account: ${u?.label || applied.userKey}` });
@@ -256,7 +390,10 @@ const CreditLedger = () => {
   const serviceOptions = React.useMemo(
     () => [
       { value: '', label: 'All services' },
-      ...state.featureOptions.map((key) => ({ value: key, label: key })),
+      ...state.featureOptions.map((key) => ({
+        value: key,
+        label: prettyServiceLabel(key),
+      })),
     ],
     [state.featureOptions],
   );
@@ -309,6 +446,7 @@ const CreditLedger = () => {
     const header = [
       'Date',
       'Transaction Type',
+      'Workspace',
       'Service',
       'Sub-account',
       'Sub-account Email',
@@ -329,13 +467,14 @@ const CreditLedger = () => {
       lines.push(
         [
           when?.full || '',
-          row.displayType || row.type || '',
+          ledgerTypeLabel(row),
+          resolveWorkspaceLabel(row) || '',
           row.service || '',
           subLabel,
           sub?.email || '',
           formatCredits(row.amount),
           typeof row.balanceAfter === 'number' ? row.balanceAfter : '',
-          row.reference || '',
+          row.id || '',
           row.description || '',
         ]
           .map(csvEscape)
@@ -352,26 +491,106 @@ const CreditLedger = () => {
     URL.revokeObjectURL(url);
   };
 
-  return (
-    <div className="ledger">
-      <header className="ledger-top">
-        <div>
-          <a href="/dashboard" className="ledger-back">
-            ← Dashboard
-          </a>
-          <h1 className="ledger-title">Credit ledger</h1>
-          <p className="ledger-sub">
-            Immutable history of credit movements for your organization. Running balance is the
-            balance after each transaction. Sub-account shows who consumed credits from the org
-            pool.
-          </p>
-        </div>
-        <div className="ledger-top__actions">
-          {state.currentBalance != null && (
-            <span className="ledger-balance">
-              Available: <strong>{state.currentBalance.toLocaleString()}</strong>
+  const extrasAboveGrant =
+    typeof state.currentBalance === 'number' &&
+    typeof state.allocation === 'number' &&
+    state.currentBalance > state.allocation
+      ? state.currentBalance - state.allocation
+      : null;
+
+  const renderRowCards = () =>
+    state.docs.map((row) => {
+      const amt = Number(row.amount) || 0;
+      const when = formatDateTime(row.createdAt);
+      const sub = resolveSubAccount(row, ownerId);
+      const workspaceLabel = resolveWorkspaceLabel(row);
+      return (
+        <article key={row.id} className="ledger-card">
+          <div className="ledger-card__top">
+            <div>
+              <span className="ledger-card__type">{ledgerTypeLabel(row)}</span>
+              <span className="ledger-card__when">{when?.full || '—'}</span>
+            </div>
+            <span className={amt > 0 ? 'is-credit' : amt < 0 ? 'is-debit' : ''}>
+              {formatCredits(amt)}
             </span>
-          )}
+          </div>
+          <dl className="ledger-card__meta">
+            <div>
+              <dt>Service</dt>
+              <dd>{prettyServiceLabel(row.service) || '—'}</dd>
+            </div>
+            <div>
+              <dt>Who</dt>
+              <dd>
+                {sub
+                  ? `${sub.name}${sub.isOwner ? ' (owner)' : ''}`
+                  : '—'}
+              </dd>
+            </div>
+            <div>
+              <dt>Workspace</dt>
+              <dd>{workspaceLabel || '—'}</dd>
+            </div>
+            <div>
+              <dt>Balance after</dt>
+              <dd>
+                {typeof row.balanceAfter === 'number'
+                  ? row.balanceAfter.toLocaleString()
+                  : '—'}
+              </dd>
+            </div>
+          </dl>
+          {row.id ? (
+            <div className="ledger-card__ref">
+              <span className="ledger-card__ref-label">Reference</span>
+              <code className="mono ledger-card__ref-value">{row.id}</code>
+              <CopyTextButton text={String(row.id)} />
+            </div>
+          ) : null}
+          {row.description ? <p className="ledger-card__desc">{row.description}</p> : null}
+        </article>
+      );
+    });
+
+  return (
+    <div className={`ledger${embedded ? ' ledger--embedded' : ''}`}>
+      {!embedded ? (
+        <header className="ledger-top">
+          <div>
+            <a href="/dashboard" className="ledger-back">
+              ← Dashboard
+            </a>
+            <h1 className="ledger-title">Credit ledger</h1>
+            <p className="ledger-sub">
+              History of credit movements. Available is what you can spend now; plan grant is
+              your cycle allocation (top-ups can raise available above the grant).
+            </p>
+          </div>
+          <div className="ledger-top__actions">
+            {state.currentBalance != null && (
+              <span className="ledger-balance">
+                Available: <strong>{state.currentBalance.toLocaleString()}</strong>
+              </span>
+            )}
+            <button
+              type="button"
+              className="dash-link-btn dash-link-btn--ghost"
+              onClick={() => exportCsv().catch((err) => alert(err.message || 'Export failed'))}
+              disabled={state.loading || state.totalDocs === 0}
+            >
+              Export CSV
+            </button>
+          </div>
+        </header>
+      ) : (
+        <div className="ledger-embedded-head">
+          <div>
+            <h2 className="dash-card__title" style={{ margin: 0 }}>Ledger</h2>
+            <p className="section-page-sub">
+              Full movement history with filters, sort, and CSV export.
+            </p>
+          </div>
           <button
             type="button"
             className="dash-link-btn dash-link-btn--ghost"
@@ -381,82 +600,121 @@ const CreditLedger = () => {
             Export CSV
           </button>
         </div>
-      </header>
+      )}
 
-      <form className="ledger-filters" onSubmit={applyFilters}>
-        <label>
-          <span>From</span>
-          <LedgerDateField
-            aria-label="From date"
-            value={filters.from}
-            onChange={(from) => setFilters((f) => ({ ...f, from }))}
-            placeholder="Start date"
-          />
-        </label>
-        <label>
-          <span>To</span>
-          <LedgerDateField
-            aria-label="To date"
-            value={filters.to}
-            onChange={(to) => setFilters((f) => ({ ...f, to }))}
-            placeholder="End date"
-          />
-        </label>
-        <label>
-          <span>Type</span>
-          <LedgerSelect
-            aria-label="Transaction type"
-            value={filters.type}
-            onValueChange={(type) => setFilters((f) => ({ ...f, type }))}
-            options={TYPE_OPTIONS}
-          />
-        </label>
-        <label>
-          <span>Service</span>
-          <LedgerSelect
-            aria-label="Service"
-            value={filters.featureKey}
-            onValueChange={(featureKey) => setFilters((f) => ({ ...f, featureKey }))}
-            options={serviceOptions}
-          />
-        </label>
-        <label>
-          <span>Sub-account</span>
-          <LedgerSelect
-            aria-label="Sub-account"
-            value={filters.userKey}
-            onValueChange={(userKey) => setFilters((f) => ({ ...f, userKey }))}
-            options={subAccountOptions}
-          />
-        </label>
-        <label>
-          <span>Direction</span>
-          <LedgerSelect
-            aria-label="Direction"
-            value={filters.direction}
-            onValueChange={(direction) => setFilters((f) => ({ ...f, direction }))}
-            options={DIRECTION_OPTIONS}
-          />
-        </label>
-        <label>
-          <span>Sort</span>
-          <LedgerSelect
-            aria-label="Sort"
-            value={filters.sort}
-            onValueChange={(sort) => setFilters((f) => ({ ...f, sort }))}
-            options={SORT_OPTIONS}
-          />
-        </label>
-        <label className="ledger-filters__search">
-          <span>Search</span>
-          <input
-            type="search"
-            placeholder="Description or reference"
-            value={filters.q}
-            onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
-          />
-        </label>
+      <div className="ledger-kpis" aria-label="Credit summary">
+        <div className="ledger-kpi ledger-kpi--primary">
+          <span className="ledger-kpi__label">Available</span>
+          <span className="ledger-kpi__value">
+            {state.currentBalance == null ? '…' : state.currentBalance.toLocaleString()}
+          </span>
+          <span className="ledger-kpi__hint">
+            {extrasAboveGrant != null
+              ? `Includes +${extrasAboveGrant.toLocaleString()} top-up`
+              : 'Spendable now'}
+          </span>
+        </div>
+        <div className="ledger-kpi">
+          <span className="ledger-kpi__label">Plan grant</span>
+          <span className="ledger-kpi__value">
+            {state.allocation == null ? '—' : state.allocation.toLocaleString()}
+          </span>
+          <span className="ledger-kpi__hint">Credits from your plan each cycle</span>
+        </div>
+        <div className="ledger-kpi">
+          <span className="ledger-kpi__label">Credited</span>
+          <span className={`ledger-kpi__value${state.summary ? ' is-credit' : ''}`}>
+            {state.loading && !state.summary
+              ? '…'
+              : state.summary
+                ? formatCredits(state.summary.totalCredited ?? 0)
+                : '—'}
+          </span>
+          <span className="ledger-kpi__hint">Matching filters</span>
+        </div>
+        <div className="ledger-kpi">
+          <span className="ledger-kpi__label">Deducted</span>
+          <span className={`ledger-kpi__value${state.summary ? ' is-debit' : ''}`}>
+            {state.loading && !state.summary
+              ? '…'
+              : state.summary
+                ? formatCredits(-(state.summary.totalDeducted ?? 0))
+                : '—'}
+          </span>
+          <span className="ledger-kpi__hint">
+            {state.summary
+              ? `${(state.summary.packagePurchases ?? 0).toLocaleString()} pack purchases`
+              : 'Matching filters'}
+          </span>
+        </div>
+      </div>
+
+      <form className="ledger-filters ledger-filters--sticky" onSubmit={applyFilters}>
+        <div className="ledger-filters__row">
+          <label>
+            <span>From</span>
+            <LedgerDateField
+              aria-label="From date"
+              value={filters.from}
+              maxDate={filters.to || undefined}
+              onChange={(from) =>
+                setFilters((f) => {
+                  const next = { ...f, from };
+                  // Keep range valid if start moves past an existing end.
+                  if (from && f.to && from > f.to) next.to = '';
+                  return next;
+                })
+              }
+              placeholder="Start date"
+            />
+          </label>
+          <label>
+            <span>To</span>
+            <LedgerDateField
+              aria-label="To date"
+              value={filters.to}
+              minDate={filters.from || undefined}
+              onChange={(to) => setFilters((f) => ({ ...f, to }))}
+              placeholder="End date"
+            />
+          </label>
+          <label>
+            <span>Type</span>
+            <LedgerSelect
+              aria-label="Transaction type"
+              value={filters.type}
+              onValueChange={(type) => setFilters((f) => ({ ...f, type }))}
+              options={TYPE_OPTIONS}
+            />
+          </label>
+          <label>
+            <span>Service</span>
+            <LedgerSelect
+              aria-label="Service"
+              value={filters.featureKey}
+              onValueChange={(featureKey) => setFilters((f) => ({ ...f, featureKey }))}
+              options={serviceOptions}
+            />
+          </label>
+          <label className="ledger-filters__search">
+            <span>Search</span>
+            <input
+              type="search"
+              placeholder="Description or reference"
+              value={filters.q}
+              onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
+            />
+          </label>
+        </div>
         <div className="ledger-filters__actions">
+          <button
+            type="button"
+            className="dash-link-btn dash-link-btn--ghost"
+            aria-expanded={showMoreFilters}
+            onClick={() => setShowMoreFilters((v) => !v)}
+          >
+            {showMoreFilters ? 'Fewer filters' : 'More filters'}
+          </button>
           <button type="submit" className="dash-link-btn">
             Apply
           </button>
@@ -464,6 +722,37 @@ const CreditLedger = () => {
             Clear
           </button>
         </div>
+        {showMoreFilters ? (
+          <div className="ledger-filters__more">
+            <label>
+              <span>Sub-account</span>
+              <LedgerSelect
+                aria-label="Sub-account"
+                value={filters.userKey}
+                onValueChange={(userKey) => setFilters((f) => ({ ...f, userKey }))}
+                options={subAccountOptions}
+              />
+            </label>
+            <label>
+              <span>Direction</span>
+              <LedgerSelect
+                aria-label="Direction"
+                value={filters.direction}
+                onValueChange={(direction) => setFilters((f) => ({ ...f, direction }))}
+                options={DIRECTION_OPTIONS}
+              />
+            </label>
+            <label>
+              <span>Sort</span>
+              <LedgerSelect
+                aria-label="Sort"
+                value={filters.sort}
+                onValueChange={(sort) => setFilters((f) => ({ ...f, sort }))}
+                options={SORT_OPTIONS}
+              />
+            </label>
+          </div>
+        ) : null}
       </form>
 
       {chips.length > 0 && (
@@ -484,33 +773,34 @@ const CreditLedger = () => {
         </p>
       )}
 
-      <div className={`ledger-table-wrap${state.loading ? ' is-loading' : ''}`}>
+      <div className={`ledger-table-wrap ledger-table-wrap--desktop${state.loading ? ' is-loading' : ''}`}>
         <table className="ledger-table">
           <thead>
             <tr>
               <th>Date</th>
-              <th>Transaction Type</th>
+              <th>Type</th>
+              <th>Workspace</th>
               <th>Service</th>
-              <th>Sub-account</th>
-              <th>Credits</th>
-              <th>Running Balance</th>
-              <th>Reference</th>
-              <th>Description</th>
+              <th>Who</th>
+              <th>Amount</th>
+              <th>Balance after</th>
+              <th title="Credit transaction ID">Reference</th>
+              <th aria-label="Description" />
             </tr>
           </thead>
           <tbody>
             {state.loading && state.docs.length === 0 && (
               <tr>
-                <td colSpan={8} className="ledger-empty">
+                <td colSpan={9} className="ledger-empty">
                   Loading ledger…
                 </td>
               </tr>
             )}
             {!state.loading && state.docs.length === 0 && (
               <tr>
-                <td colSpan={8} className="ledger-empty">
-                  No credit transactions match these filters. Usage only appears under a
-                  sub-account when the product attributes the deduction to that account.
+                <td colSpan={9} className="ledger-empty">
+                  No credit movements yet. Activity appears here when credits are granted,
+                  reset, or spent.
                 </td>
               </tr>
             )}
@@ -518,57 +808,131 @@ const CreditLedger = () => {
               const amt = Number(row.amount) || 0;
               const when = formatDateTime(row.createdAt);
               const sub = resolveSubAccount(row, ownerId);
+              const workspaceLabel = resolveWorkspaceLabel(row);
+              const txnId = row.id ? String(row.id) : '';
+              const desc = row.description || '';
+              const open = expandedId === row.id;
               return (
-                <tr key={row.id}>
-                  <td className="ledger-date">
-                    {when ? (
-                      <>
-                        <span className="ledger-date__day">{when.date}</span>
-                        <span className="ledger-date__time">{when.time}</span>
-                      </>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                  <td>{row.displayType || row.type}</td>
-                  <td>{row.service || '—'}</td>
-                  <td>
-                    {sub ? (
-                      <div className="ledger-user">
-                        <span>
-                          {sub.name}
-                          {sub.isOwner ? (
-                            <span className="ledger-owner-tag">Owner</span>
-                          ) : null}
-                        </span>
-                        {sub.email && <span className="ledger-user__email mono">{sub.email}</span>}
-                      </div>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                  <td className={amt > 0 ? 'is-credit' : amt < 0 ? 'is-debit' : ''}>
-                    {formatCredits(amt)}
-                  </td>
-                  <td>
-                    {typeof row.balanceAfter === 'number' ? row.balanceAfter.toLocaleString() : '—'}
-                  </td>
-                  <td className="mono ledger-ref">{row.reference || '—'}</td>
-                  <td>{row.description || '—'}</td>
-                </tr>
+                <React.Fragment key={row.id}>
+                  <tr className={open ? 'is-expanded' : undefined}>
+                    <td className="ledger-date">
+                      {when ? (
+                        <>
+                          <span className="ledger-date__day">{when.date}</span>
+                          <span className="ledger-date__time">{when.time}</span>
+                        </>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td>{ledgerTypeLabel(row)}</td>
+                    <td>{workspaceLabel || '-'}</td>
+                    <td>{prettyServiceLabel(row.service)}</td>
+                    <td>
+                      {sub ? (
+                        <div className="ledger-user">
+                          <span>
+                            {sub.name}
+                            {sub.isOwner ? (
+                              <span className="ledger-owner-tag">Owner</span>
+                            ) : null}
+                          </span>
+                          {sub.email && (
+                            <span className="ledger-user__email mono">{sub.email}</span>
+                          )}
+                        </div>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td className={amt > 0 ? 'is-credit' : amt < 0 ? 'is-debit' : ''}>
+                      {formatCredits(amt)}
+                    </td>
+                    <td>
+                      {typeof row.balanceAfter === 'number'
+                        ? row.balanceAfter.toLocaleString()
+                        : '-'}
+                    </td>
+                    <td>
+                      {txnId ? (
+                        <span className="mono ledger-ref">{txnId}</span>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td className="ledger-actions-cell">
+                      {desc ? (
+                        <button
+                          type="button"
+                          className={`ledger-details-btn${open ? ' is-open' : ''}`}
+                          aria-expanded={open}
+                          aria-label={open ? 'Hide description' : 'Show description'}
+                          title={open ? 'Hide description' : 'Show description'}
+                          onClick={() =>
+                            setExpandedId((id) => (id === row.id ? null : row.id))
+                          }
+                        >
+                          <InfoIcon />
+                        </button>
+                      ) : null}
+                    </td>
+                  </tr>
+                  {open && desc ? (
+                    <tr className="ledger-detail-row">
+                      <td colSpan={9}>
+                        <div className="ledger-detail">
+                          <div className="ledger-detail__block">
+                            <span className="ledger-detail__label">Description</span>
+                            <p className="ledger-detail__text">{desc}</p>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : null}
+                </React.Fragment>
               );
             })}
           </tbody>
         </table>
       </div>
 
+      <div className="ledger-cards ledger-cards--mobile">
+        {state.loading && state.docs.length === 0 ? (
+          <p className="ledger-empty">Loading ledger…</p>
+        ) : null}
+        {!state.loading && state.docs.length === 0 ? (
+          <p className="ledger-empty">
+            No credit movements yet. Activity appears here when credits are granted, reset, or
+            spent.
+          </p>
+        ) : null}
+        {renderRowCards()}
+      </div>
+
       <div className="ledger-pager">
-        <span>
-          {state.loading && state.docs.length === 0
-            ? 'Loading…'
-            : `${state.totalDocs} entr${state.totalDocs === 1 ? 'y' : 'ies'}`}
-          {!state.loading && state.totalPages > 1 ? ` · page ${page} of ${state.totalPages}` : ''}
-        </span>
+        <div className="ledger-pager__meta">
+          <span>
+            {state.loading && state.docs.length === 0
+              ? 'Loading…'
+              : `${state.totalDocs} entr${state.totalDocs === 1 ? 'y' : 'ies'}`}
+            {!state.loading && state.totalPages > 1
+              ? ` · page ${page} of ${state.totalPages}`
+              : ''}
+          </span>
+          <label className="ledger-pager__size">
+            <span>Per page</span>
+            <LedgerSelect
+              aria-label="Rows per page"
+              value={String(pageSize)}
+              onValueChange={(next) => {
+                const size = Number(next) || 8;
+                setPageSize(size);
+                setPage(1);
+              }}
+              options={PAGE_SIZE_OPTIONS}
+            />
+          </label>
+        </div>
         <div className="ledger-pager__btns">
           <button
             type="button"

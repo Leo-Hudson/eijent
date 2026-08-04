@@ -4236,3 +4236,67 @@ a.signup-submit {
   display: flex;
   gap: 8px;
 }
+
+/* ---------- Auth: inline notices + forgot link ---------- */
+.signup-form-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--r);
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: #12805C;
+  background: var(--mint-100);
+  border: 1px solid rgba(18, 128, 92, 0.22);
+}
+.signup-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.signup-inline-link {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--indigo-600);
+}
+.signup-inline-link:hover { text-decoration: underline; }
+
+/* ---------- Settings ---------- */
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+.settings-readonly {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin: 0;
+}
+.settings-readonly dt {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--fg-soft);
+}
+.settings-readonly dd {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--ink-900);
+  word-break: break-all;
+}
+.settings-note {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-soft);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--fg-soft);
+}
+.settings-note a { color: var(--indigo-600); }
+.settings-note a:hover { text-decoration: underline; }

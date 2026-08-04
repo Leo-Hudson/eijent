@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import * as yup from 'yup';
 import { accountNameSchema, ACCOUNT_NAME_IN_USE } from '@/lib/accountName';
 import { isPasswordComplex, PASSWORD_COMPLEXITY_ERROR } from '@/lib/passwordRules';
+import { guardRequest, HOUR } from '@/lib/requestGuards';
 
 const CORE_API_BASE_URL = process.env.CORE_API_BASE_URL || '';
 const CORE_API_KEY = process.env.CORE_API_KEY || '';
@@ -160,6 +161,12 @@ const pendingReviewResponse = ({ member, companyName, accountName, message }) =>
  */
 export const POST = async (req) => {
   try {
+    const blocked = guardRequest(req, {
+      name: 'signup',
+      buckets: [{ limit: 5, windowMs: HOUR }],
+    });
+    if (blocked) return blocked;
+
     if (!CORE_API_BASE_URL || !CORE_API_KEY || !CORE_TENANT_ID) {
       throw new Error(
         'Signup is not configured (missing CORE_API_BASE_URL, CORE_API_KEY or CORE_TENANT_ID).',

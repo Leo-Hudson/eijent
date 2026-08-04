@@ -13,12 +13,20 @@ const safeNext = (raw) => {
 const LoginForm = () => {
   const [values, setValues] = React.useState({ email: '', password: '' });
   const [error, setError] = React.useState('');
+  const [notice, setNotice] = React.useState('');
   const [submitting, setSubmitting] = React.useState(false);
+
+  React.useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('reset') === '1') {
+      setNotice('Your password was updated. Sign in with your new password.');
+    }
+  }, []);
 
   const onChange = (e) => {
     const { name, value } = e.target;
     setValues((prev) => ({ ...prev, [name]: value }));
     if (error) setError('');
+    if (notice) setNotice('');
   };
 
   const onSubmit = async (e) => {
@@ -57,6 +65,12 @@ const LoginForm = () => {
 
   return (
     <form className="signup-form" onSubmit={onSubmit} noValidate>
+      {notice && (
+        <p className="signup-form-note" role="status">
+          {notice}
+        </p>
+      )}
+
       <div className="signup-field">
         <label htmlFor="email">Work email</label>
         <input
@@ -72,7 +86,12 @@ const LoginForm = () => {
       </div>
 
       <div className="signup-field">
-        <label htmlFor="password">Password</label>
+        <div className="signup-label-row">
+          <label htmlFor="password">Password</label>
+          <a className="signup-inline-link" href="/forgot-password">
+            Forgot password?
+          </a>
+        </div>
         <input
           id="password"
           name="password"

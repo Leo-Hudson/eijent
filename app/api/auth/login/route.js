@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import * as yup from 'yup';
 import { coreLogin, slimMember } from '@/lib/coreAuth';
 import { setSessionCookie } from '@/lib/session';
+import { clearBucket, guardRequest, MINUTE } from '@/lib/requestGuards';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -24,6 +25,17 @@ export const POST = async (req) => {
     } catch {
       return NextResponse.json({ error: 'Enter your email and password.' }, { status: 400 });
     }
+
+    // Core locks an account after 5 failed attempts; these buckets additionally
+    // slow down spraying that spreads attempts across many accounts.
+    const blocked = guardRequest(req, {
+      name: 'login',
+      buckets: [
+        { limit: 15, windowMs: 15 * MINUTE },
+        { scope: `email:${clean.email.toLowerCase()}`, limit: 6, windowMs: 15 * MINUTE },
+      ],
+    });
+    if (blocked) return blocked;
 
     const { ok, status, data } = await coreLogin(clean.email, clean.password);
 
@@ -66,6 +78,8 @@ export const POST = async (req) => {
     if (!token || !user?.id) {
       return NextResponse.json({ error: 'Login failed. Please try again.' }, { status: 502 });
     }
+
+    clearBucket('login', `email:${clean.email.toLowerCase()}`);
 
     const res = NextResponse.json({ success: true, member: slimMember(user) });
     setSessionCookie(res, token, data?.exp);

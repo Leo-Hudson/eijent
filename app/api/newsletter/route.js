@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { guardRequest, HOUR } from '@/lib/requestGuards';
 
 const CORE_API_BASE_URL = process.env.CORE_API_BASE_URL || '';
 const CORE_API_KEY = process.env.CORE_API_KEY || '';
@@ -9,6 +10,12 @@ const isValidEmail = (email) =>
 
 export const POST = async (req) => {
   try {
+    const blocked = guardRequest(req, {
+      name: 'newsletter',
+      buckets: [{ limit: 10, windowMs: HOUR }],
+    });
+    if (blocked) return blocked;
+
     if (!CORE_API_BASE_URL || !CORE_API_KEY || !FORM_ID) {
       throw new Error('Newsletter is not configured (missing CORE_API_BASE_URL, CORE_API_KEY or EIJENT_NEWSLETTER_FORM_ID).');
     }

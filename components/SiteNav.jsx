@@ -14,22 +14,20 @@ const NAV_LINKS = [
   { href: '/#cases', label: 'Use cases' },
 ];
 
+const AUTH_PATHS = ['/signup', '/login', '/forgot-password', '/reset-password', '/dashboard'];
+
 const SiteNav = () => {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [active, setActive] = React.useState(null);
 
   // Standalone auth / app flows stay off the marketing nav (direct URL only).
-  if (
-    pathname?.startsWith('/signup') ||
-    pathname?.startsWith('/login') ||
-    pathname?.startsWith('/dashboard')
-  ) {
-    return null;
-  }
+  // Computed before the effects so hook order stays stable across routes.
+  const hideNav = AUTH_PATHS.some((path) => pathname?.startsWith(path));
 
   // Lock scroll while the mobile menu is open + close on Escape.
   React.useEffect(() => {
+    if (hideNav) return;
     document.body.style.overflow = menuOpen ? 'hidden' : '';
     const onKey = (e) => { if (e.key === 'Escape') setMenuOpen(false); };
     document.addEventListener('keydown', onKey);
@@ -37,10 +35,11 @@ const SiteNav = () => {
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = '';
     };
-  }, [menuOpen]);
+  }, [menuOpen, hideNav]);
 
   // Scroll-active section highlighting.
   React.useEffect(() => {
+    if (hideNav) return;
     if (!('IntersectionObserver' in window)) return;
     const sections = NAV_SECTIONS
       .map(id => document.getElementById(id))
@@ -51,7 +50,9 @@ const SiteNav = () => {
     }, { rootMargin: '-30% 0px -60% 0px' });
     sections.forEach(s => io.observe(s));
     return () => io.disconnect();
-  }, []);
+  }, [hideNav]);
+
+  if (hideNav) return null;
 
   return (
     <>

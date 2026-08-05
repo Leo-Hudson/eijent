@@ -4300,3 +4300,239 @@ a.signup-submit {
 }
 .settings-note a { color: var(--indigo-600); }
 .settings-note a:hover { text-decoration: underline; }
+
+/* Choose plan (post-login, no subscription yet) */
+.dash-shell--choose-plan {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px 20px 72px;
+}
+.choose-plan__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.choose-plan__brand {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -0.03em;
+  color: var(--ink-900);
+  text-decoration: none;
+}
+.choose-plan__header {
+  max-width: 640px;
+  margin-bottom: 28px;
+}
+.choose-plan__title {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(28px, 4vw, 36px);
+  letter-spacing: -0.03em;
+  color: var(--ink-900);
+  margin: 0 0 10px;
+}
+.choose-plan__lede {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--fg-soft);
+}
+.choose-plan__hint {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  color: var(--fg-soft);
+}
+.choose-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+@media (max-width: 960px) {
+  .choose-plan-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .choose-plan-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.choose-plan-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px 20px 18px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
+  min-height: 100%;
+}
+.choose-plan-card.is-featured,
+.choose-plan-card.is-free {
+  border-color: var(--indigo-300);
+  box-shadow: 0 0 0 3px rgba(85, 120, 250, 0.12), var(--shadow-sm);
+}
+.choose-plan-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 22px;
+}
+.choose-plan-card__badge {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: var(--r-pill);
+  background: var(--indigo-50);
+  color: var(--indigo-600);
+  font-family: var(--display);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.choose-plan-card__badge.is-free {
+  background: var(--mint-50, #e8f8f0);
+  color: #12805c;
+}
+.choose-plan-card__name {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+  color: var(--ink-900);
+}
+.choose-plan-card__price {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 28px;
+  letter-spacing: -0.03em;
+  color: var(--ink-900);
+  line-height: 1.1;
+}
+.choose-plan-card__price span {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-400);
+}
+.choose-plan-card__desc {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--fg-soft);
+  flex: 0 0 auto;
+}
+.choose-plan-card__meta {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-600);
+}
+.choose-plan-card__features {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 auto;
+}
+.choose-plan-card__features li {
+  position: relative;
+  padding-left: 18px;
+  font-size: 12.5px;
+  color: var(--ink-600);
+  line-height: 1.4;
+}
+.choose-plan-card__features li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 5px;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--r-pill);
+  background: var(--mint-100, #d8f3e7);
+  box-shadow: inset 0 0 0 1px var(--mint-200, #b6e5cf);
+}
+.choose-plan-card__cta {
+  margin-top: 12px;
+  width: 100%;
+  height: 44px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--indigo-600);
+  color: var(--white);
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+.choose-plan-card__cta:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+.choose-plan-card__cta:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.choose-plan-card__cta.is-secondary {
+  background: var(--white);
+  color: var(--ink-700);
+  border: 1px solid var(--border);
+}
+.choose-plan-card__cta.is-secondary:hover:not(:disabled) {
+  background: var(--bg-soft);
+  filter: none;
+}
+.choose-plan-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+.choose-plan-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(15, 23, 42, 0.45);
+  cursor: pointer;
+}
+.choose-plan-modal__panel {
+  position: relative;
+  z-index: 1;
+  width: min(420px, 100%);
+  background: var(--white);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg, 0 20px 50px rgba(15, 23, 42, 0.18));
+  padding: 28px 24px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.choose-plan-modal__panel h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  color: var(--ink-900);
+}
+.choose-plan-modal__panel p {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--fg-soft);
+}
+.choose-plan-modal__panel .signup-actions {
+  margin-top: 4px;
+}
+.choose-plan-modal__panel .signup-submit {
+  width: 100%;
+}

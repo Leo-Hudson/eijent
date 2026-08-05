@@ -4,7 +4,7 @@ Member-facing journey and Core API notes for the Eijent landing / web app team.
 
 | Doc | Contents |
 | --- | -------- |
-| [member-user-story.md](./member-user-story.md) | Signup → approve → login → product usage |
+| [member-user-story.md](./member-user-story.md) | Signup → approve → choose plan → login dashboard → product usage |
 | [member-dashboard.md](./member-dashboard.md) | Dashboard + credit ledger UI |
 | [apis.md](./apis.md) | Credits, coupons, entitlements APIs (Postman-style) |
 | [dashboard-ledger-redesign-plan.md](./dashboard-ledger-redesign-plan.md) | Plan: shell/tabs redesign + clearer credit numbers |

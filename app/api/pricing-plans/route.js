@@ -6,8 +6,8 @@ const CORE_TENANT_ID = process.env.CORE_TENANT_ID || '';
 
 /**
  * Maps a Core pricing-plan doc (with product populated at depth>=2) into the
- * slim shape the signup plan picker needs. Price on the product is stored in
- * minor units (cents).
+ * slim shape the choose-plan / catalog UI needs. Price on the product is stored
+ * in minor units (cents).
  */
 const toSlimPlan = (doc) => {
   const product = doc?.product && typeof doc.product === 'object' ? doc.product : null;
@@ -45,6 +45,7 @@ const toSlimPlan = (doc) => {
     shortDescription: planConfig.shortDescription || null,
     featured: Boolean(doc.featured),
     displayOrder: typeof doc.displayOrder === 'number' ? doc.displayOrder : 0,
+    credits: typeof doc.credits === 'number' ? doc.credits : null,
     price: priceMinor,
     priceMajor: priceMinor === null ? null : priceMinor / 100,
     currency,
@@ -64,6 +65,7 @@ const toSlimPlan = (doc) => {
     limitOnePerCustomer: Boolean(planConfig.settings?.limitOnePerCustomer),
     allowCustomerStartDate: Boolean(planConfig.settings?.allowCustomerStartDate),
     featureGroups,
+    hasProduct: Boolean(product),
   };
 };
 
@@ -98,7 +100,12 @@ export const GET = async () => {
     }
 
     const data = await res.json();
-    const plans = Array.isArray(data?.docs) ? data.docs.map(toSlimPlan) : [];
+    const plans = Array.isArray(data?.docs)
+      ? data.docs
+          .map(toSlimPlan)
+          // Skip pricing plans whose product was deleted / cannot be populated.
+          .filter((plan) => plan.hasProduct && plan.price != null)
+      : [];
 
     return NextResponse.json({ plans });
   } catch (error) {

@@ -157,7 +157,8 @@ const pendingReviewResponse = ({ member, companyName, accountName, message }) =>
 
 /**
  * Signup: creates a Pending Eijent member in Core with company details only.
- * No plan selection, subscription, or session. An admin assigns the plan on approve.
+ * No plan selection, subscription, or session. Admin approves without a plan;
+ * the member chooses a plan after they can sign in.
  */
 export const POST = async (req) => {
   try {

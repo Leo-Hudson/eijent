@@ -6,6 +6,7 @@ import MemberErrorState from '@/components/member/MemberErrorState';
 import MemberSoftActions from '@/components/member/MemberSoftActions';
 import { useMemberDashboard, deriveWallet } from '@/hooks/useMemberDashboard';
 import {
+  BUY_CREDITS_MAILTO,
   findLimit,
   formatDate,
   formatNextInvoice,
@@ -79,6 +80,16 @@ function ModuleCard({ title, limits }) {
   );
 }
 
+function MetricCard({ label, value, hint }) {
+  return (
+    <div className="app-metric-card">
+      <span className="app-metric-card__label">{label}</span>
+      <span className="app-metric-card__value">{value}</span>
+      {hint ? <span className="app-metric-card__hint">{hint}</span> : null}
+    </div>
+  );
+}
+
 export default function PlanPage() {
   const { loading, error, errorCode, data, reload } = useMemberDashboard();
 
@@ -99,7 +110,7 @@ export default function PlanPage() {
   }
 
   const { member, subscriptions = [], subAccounts = [], entitlements = null } = data || {};
-  const { wallet, allocation, balance } = deriveWallet(data);
+  const { wallet, allocation, balance, totalDeducted, nextResetAt } = deriveWallet(data);
   const modules = entitlements?.modules || [];
   const limits = entitlements?.limits || [];
   const seatsLimit = findLimit(limits, 'maxTeamMembers');
@@ -107,6 +118,19 @@ export default function PlanPage() {
   const seatsUsed =
     typeof seatsLimit?.used === 'number' ? seatsLimit.used : 1 + subAccounts.length;
   const primarySub = subscriptions[0] || null;
+  const tone = STATUS_TONE[primarySub?.status] || 'is-warn';
+  const serviceName =
+    primarySub?.servicePlanName || entitlements?.servicePlan?.name || null;
+  const priceLabel = primarySub ? formatPlanPrice(primarySub) : null;
+  const resetCycle = prettyCycle(primarySub?.creditResetCycle || wallet?.resetCycle);
+  const nextReset = formatDate(primarySub?.nextCreditResetAt || nextResetAt || wallet?.nextResetAt);
+  const billingCycle = prettyCycle(primarySub?.billingCycle);
+  const renewal = formatNextInvoice(primarySub) || formatDate(primarySub?.endDate);
+  const usedPct =
+    typeof totalDeducted === 'number' && typeof allocation === 'number' && allocation > 0
+      ? Math.min(100, Math.round((totalDeducted / allocation) * 1000) / 10)
+      : null;
+
   const standaloneLimits = limits
     .filter((l) => !l.module)
     .map((l) =>
@@ -122,6 +146,36 @@ export default function PlanPage() {
   const limitedCardCount =
     modulesWithLimits.length + (standaloneLimits.length ? 1 : 0);
 
+  const summaryRows = [
+    {
+      label: 'Status',
+      value: primarySub?.status ? (
+        <span className={`dash-badge ${tone}`}>{prettyStatus(primarySub.status)}</span>
+      ) : (
+        '—'
+      ),
+    },
+    {
+      label: 'Monthly credits',
+      value: allocation != null ? allocation.toLocaleString() : '—',
+    },
+    {
+      label: 'Seats',
+      value: seatsLimit
+        ? formatUsedMax({ ...seatsLimit, used: seatsUsed })
+        : `${seatsUsed}`,
+    },
+    {
+      label: 'Workspaces',
+      value: workspacesLimit ? formatUsedMax(workspacesLimit) : '—',
+    },
+    {
+      label: 'Active modules',
+      value: modules.length ? modules.join(', ') : '—',
+      wide: true,
+    },
+  ];
+
   return (
     <MemberShell active="plan" member={member}>
       <div className="dash">
@@ -132,107 +186,152 @@ export default function PlanPage() {
           </p>
         </header>
 
-        <MemberSoftActions />
-
-        <section className="dash-card">
-          <div className="dash-card__head">
-            <h2 className="dash-card__title">Subscription</h2>
-          </div>
-          {subscriptions.length === 0 ? (
-            <p className="dash-empty">No active subscription found.</p>
-          ) : (
-            <>
-              <ul className="dash-sub-list">
-                {subscriptions.map((sub) => {
-                  const tone = STATUS_TONE[sub.status] || 'is-warn';
-                  const serviceName =
-                    sub.servicePlanName || entitlements?.servicePlan?.name || null;
-                  const priceLabel = formatPlanPrice(sub);
-                  const resetCycle = prettyCycle(sub.creditResetCycle || wallet?.resetCycle);
-                  const nextReset = formatDate(sub.nextCreditResetAt || wallet?.nextResetAt);
-                  const facts = [
-                    serviceName ? { label: 'Service plan', value: serviceName } : null,
-                    priceLabel ? { label: 'Price', value: priceLabel } : null,
-                    { label: 'Payment', value: prettyStatus(sub.paymentStatus) },
-                    formatDate(sub.startDate)
-                      ? { label: 'Started', value: formatDate(sub.startDate) }
-                      : null,
-                    prettyCycle(sub.billingCycle)
-                      ? { label: 'Billing cycle', value: prettyCycle(sub.billingCycle) }
-                      : null,
-                    formatNextInvoice(sub)
-                      ? { label: 'Next invoice', value: formatNextInvoice(sub) }
-                      : null,
-                    resetCycle
-                      ? {
-                          label: 'Credit reset',
-                          value: nextReset ? `${resetCycle} · next ${nextReset}` : resetCycle,
-                        }
-                      : null,
-                    allocation != null
-                      ? {
-                          label: 'Plan grant',
-                          value: `${allocation.toLocaleString()} credits`,
-                        }
-                      : null,
-                    balance != null
-                      ? {
-                          label: 'Available',
-                          value: `${balance.toLocaleString()} credits`,
-                        }
-                      : null,
-                  ].filter(Boolean);
-
-                  return (
-                    <li key={sub.id} className="dash-sub">
-                      <div className="dash-sub__main">
-                        <span className="dash-sub__plan">{sub.planName}</span>
-                        <span className={`dash-badge ${tone}`}>
-                          {prettyStatus(sub.status)}
-                        </span>
-                      </div>
-                      <dl className="dash-sub__facts">
-                        {facts.map((fact) => (
-                          <div key={fact.label} className="dash-sub__fact">
-                            <dt>{fact.label}</dt>
-                            <dd>{fact.value}</dd>
-                          </div>
-                        ))}
-                      </dl>
-                    </li>
-                  );
-                })}
-              </ul>
-
-              <div className="dash-summary" aria-label="Plan summary">
-                <div className="dash-summary__item">
-                  <span className="dash-summary__label">Included credits</span>
-                  <span className="dash-summary__value">
-                    {allocation != null ? allocation.toLocaleString() : '—'}
+        {primarySub ? (
+          <div className="plan-top-grid">
+            <section className="plan-hero-card" aria-label="Pricing plan">
+              <div className="plan-hero-card__head">
+                {primarySub.status ? (
+                  <span className={`dash-badge ${tone} dash-badge--on-dark`}>
+                    {prettyStatus(primarySub.status)}
                   </span>
-                </div>
-                <div className="dash-summary__item">
-                  <span className="dash-summary__label">Seats</span>
-                  <span className="dash-summary__value">
-                    {seatsLimit
-                      ? formatUsedMax({ ...seatsLimit, used: seatsUsed })
-                      : `${seatsUsed}`}
-                  </span>
-                </div>
-                <div className="dash-summary__item">
-                  <span className="dash-summary__label">Workspaces</span>
-                  <span className="dash-summary__value">
-                    {workspacesLimit ? formatUsedMax(workspacesLimit) : '—'}
-                  </span>
-                </div>
-                <div className="dash-summary__item">
-                  <span className="dash-summary__label">Modules</span>
-                  <span className="dash-summary__value">{modules.length}</span>
-                </div>
+                ) : null}
+                {serviceName ? (
+                  <span className="plan-hero-card__service">{serviceName}</span>
+                ) : null}
               </div>
-            </>
-          )}
-        </section>
+              <h2 className="plan-hero-card__title">{primarySub.planName || 'Plan'}</h2>
+              {priceLabel ? (
+                <p className="plan-hero-card__price">{priceLabel}</p>
+              ) : null}
+
+              <dl className="plan-hero-card__facts">
+                {billingCycle ? (
+                  <div>
+                    <dt>Billing cycle</dt>
+                    <dd>{billingCycle}</dd>
+                  </div>
+                ) : null}
+                {renewal ? (
+                  <div>
+                    <dt>Renewal date</dt>
+                    <dd>{renewal}</dd>
+                  </div>
+                ) : null}
+                {allocation != null ? (
+                  <div>
+                    <dt>Monthly credits</dt>
+                    <dd>{allocation.toLocaleString()}</dd>
+                  </div>
+                ) : null}
+                {resetCycle || nextReset ? (
+                  <div>
+                    <dt>Credits reset at</dt>
+                    <dd>
+                      {[resetCycle, nextReset].filter(Boolean).join(' · ') || '—'}
+                    </dd>
+                  </div>
+                ) : null}
+              </dl>
+
+              <div className="plan-hero-card__actions">
+                <a href={SALES_MAILTO} className="dash-link-btn dash-link-btn--on-dark">
+                  Upgrade Plan
+                </a>
+                <a href="/dashboard/billing" className="dash-link-btn dash-link-btn--ghost-on-dark">
+                  View Billing →
+                </a>
+              </div>
+            </section>
+
+            <section className="dash-card plan-summary-card" aria-label="Subscription summary">
+              <div className="dash-card__head">
+                <h2 className="dash-card__title">Subscription Summary</h2>
+              </div>
+              <dl className="plan-summary-list">
+                {summaryRows.map((row) => (
+                  <div
+                    key={row.label}
+                    className={`plan-summary-list__row${row.wide ? ' is-wide' : ''}`}
+                  >
+                    <dt>{row.label}</dt>
+                    <dd>{row.value}</dd>
+                  </div>
+                ))}
+              </dl>
+              <div className="dash-card__foot plan-summary-card__foot">
+                <a href={BUY_CREDITS_MAILTO} className="dash-link-btn">
+                  Buy Credits
+                </a>
+                <a href={SALES_MAILTO} className="dash-link-btn dash-link-btn--ghost">
+                  Contact Sales
+                </a>
+              </div>
+            </section>
+          </div>
+        ) : (
+          <section className="dash-card">
+            <div className="dash-card__head">
+              <h2 className="dash-card__title">Subscription</h2>
+            </div>
+            <p className="dash-empty">No active subscription found.</p>
+            <div className="dash-card__foot">
+              <MemberSoftActions showBilling={false} showCredits={false} />
+            </div>
+          </section>
+        )}
+
+        {primarySub ? (
+          <div className="app-metric-row" aria-label="Credit metrics">
+            <MetricCard
+              label="Current balance"
+              value={balance != null ? balance.toLocaleString() : '—'}
+              hint={
+                typeof balance === 'number' && typeof allocation === 'number' && balance > allocation
+                  ? 'Includes top-ups'
+                  : undefined
+              }
+            />
+            <MetricCard
+              label="Monthly allocation"
+              value={allocation != null ? allocation.toLocaleString() : '—'}
+              hint={resetCycle || undefined}
+            />
+            <MetricCard
+              label="Credits used this cycle"
+              value={totalDeducted != null ? totalDeducted.toLocaleString() : '—'}
+              hint={usedPct != null ? `${usedPct}% of allocation` : undefined}
+            />
+            <MetricCard
+              label="Next reset"
+              value={nextReset || '—'}
+              hint={resetCycle ? `${resetCycle} cycle` : undefined}
+            />
+          </div>
+        ) : null}
+
+        {subscriptions.length > 1 ? (
+          <section className="dash-card">
+            <div className="dash-card__head">
+              <h2 className="dash-card__title">Other subscriptions</h2>
+              <span className="dash-count">{subscriptions.length - 1}</span>
+            </div>
+            <ul className="dash-sub-list">
+              {subscriptions.slice(1).map((sub) => {
+                const subTone = STATUS_TONE[sub.status] || 'is-warn';
+                return (
+                  <li key={sub.id} className="dash-sub">
+                    <div className="dash-sub__main">
+                      <span className="dash-sub__plan">{sub.planName}</span>
+                      <span className={`dash-badge ${subTone}`}>
+                        {prettyStatus(sub.status)}
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ) : null}
 
         <section
           className={`dash-card${limitedCardCount ? '' : ' dash-card--muted'}`}

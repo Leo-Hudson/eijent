@@ -1,6 +1,8 @@
 # Eijent member dashboard (landing site)
 
-What an approved member sees after login on the Eijent landing site.
+What an approved member sees after login on the Eijent landing site (once they have a plan).
+
+Approved members with no subscription land on **/dashboard/choose-plan** first.
 
 For the Eijent web app team. Open the same screens with landing-site access; no Core code access required.
 
@@ -94,7 +96,7 @@ Legacy `/dashboard/ledger` redirects here.
 
 Shown when Core returns `credits.isLowOnCredits` (balance **below** `lowCreditAlertThreshold`, and threshold &gt; 0).
 
-Threshold is set on the **Pricing Plan** and snapshotted onto the subscription at approve / plan assign.
+Threshold is set on the **Pricing Plan** and snapshotted onto the subscription when the member selects a plan (or when an admin creates a subscription manually).
 
 ---
 

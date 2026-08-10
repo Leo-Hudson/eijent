@@ -55,6 +55,10 @@ export default function OverviewPage() {
   const primarySub = subscriptions[0] || null;
   const planTone = STATUS_TONE[primarySub?.status] || 'is-warn';
   const firstName = member?.firstName;
+  const usedPct =
+    typeof totalDeducted === 'number' && typeof allocation === 'number' && allocation > 0
+      ? Math.min(100, Math.round((totalDeducted / allocation) * 1000) / 10)
+      : null;
 
   return (
     <MemberShell active="overview" member={member}>
@@ -83,49 +87,57 @@ export default function OverviewPage() {
 
         <MemberSoftActions showCredits />
 
-        <section className="overview-credits dash-card">
-          <div className="overview-credits__pair">
-            <div className="overview-credits__stat">
-              <span className="overview-credits__label">Credits Available</span>
-              <span className="overview-credits__value">
-                {balance != null ? balance.toLocaleString() : '—'}
+        <div className="app-metric-row" aria-label="Credit metrics">
+          <div className="app-metric-card">
+            <span className="app-metric-card__label">Current balance</span>
+            <span className="app-metric-card__value">
+              {balance != null ? balance.toLocaleString() : '—'}
+            </span>
+            {allocation != null ? (
+              <span className="app-metric-card__hint">
+                Plan grant {allocation.toLocaleString()}
+                {extras != null ? ` · +${extras.toLocaleString()} top-up` : ''}
               </span>
-              {allocation != null ? (
-                <span className="overview-credits__hint">
-                  Plan grant {allocation.toLocaleString()} credits
-                  {prettyCycle(primarySub?.creditResetCycle || wallet?.resetCycle)
-                    ? ` · ${prettyCycle(primarySub?.creditResetCycle || wallet?.resetCycle)}`
-                    : ''}
-                  {extras != null
-                    ? ` · +${extras.toLocaleString()} top-up`
-                    : ''}
-                </span>
-              ) : null}
-            </div>
-            <div className="overview-credits__divider" aria-hidden="true" />
-            <div className="overview-credits__stat">
-              <span className="overview-credits__label">Credits used this cycle</span>
-              <span className="overview-credits__value overview-credits__value--spent">
-                {totalDeducted != null ? totalDeducted.toLocaleString() : '—'}
-              </span>
-              {nextResetAt ? (
-                <span className="overview-credits__hint">
-                  Resets{' '}
-                  {new Date(nextResetAt).toLocaleDateString(undefined, {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
-                </span>
-              ) : (
-                <span className="overview-credits__hint">Spent from your wallet</span>
-              )}
-            </div>
+            ) : null}
           </div>
-          <a href="/dashboard/credits" className="dash-link-btn">
-            View usage & history
-          </a>
-        </section>
+          <div className="app-metric-card">
+            <span className="app-metric-card__label">Monthly allocation</span>
+            <span className="app-metric-card__value">
+              {allocation != null ? allocation.toLocaleString() : '—'}
+            </span>
+            {prettyCycle(primarySub?.creditResetCycle || wallet?.resetCycle) ? (
+              <span className="app-metric-card__hint">
+                {prettyCycle(primarySub?.creditResetCycle || wallet?.resetCycle)}
+              </span>
+            ) : null}
+          </div>
+          <div className="app-metric-card">
+            <span className="app-metric-card__label">Credits used this cycle</span>
+            <span className="app-metric-card__value">
+              {totalDeducted != null ? totalDeducted.toLocaleString() : '—'}
+            </span>
+            <span className="app-metric-card__hint">
+              {usedPct != null
+                ? `${usedPct}% of allocation`
+                : nextResetAt
+                  ? `Resets ${new Date(nextResetAt).toLocaleDateString(undefined, {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })}`
+                  : 'Spent from your wallet'}
+            </span>
+          </div>
+          <div className="app-metric-card">
+            <span className="app-metric-card__label">Team</span>
+            <span className="app-metric-card__value">{1 + subAccounts.length}</span>
+            <span className="app-metric-card__hint">
+              {subAccounts.length === 0
+                ? 'Owner only'
+                : `${subAccounts.length} sub-account${subAccounts.length === 1 ? '' : 's'}`}
+            </span>
+          </div>
+        </div>
 
         <div className="overview-grid">
           <section className="dash-card">
@@ -178,6 +190,9 @@ export default function OverviewPage() {
             <div className="dash-card__foot">
               <a href="/dashboard/team" className="dash-link-btn dash-link-btn--ghost">
                 Manage team
+              </a>
+              <a href="/dashboard/credits" className="dash-link-btn dash-link-btn--ghost">
+                View usage & history
               </a>
             </div>
           </section>

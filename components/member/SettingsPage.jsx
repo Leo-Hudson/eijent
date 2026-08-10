@@ -168,7 +168,7 @@ function ProfileCard({ member }) {
         )}
 
         <div className="settings-actions">
-          <button type="submit" className="signup-submit signup-submit--inline" disabled={saving}>
+          <button type="submit" className="dash-link-btn" disabled={saving}>
             {saving ? 'Saving\u2026' : 'Save changes'}
           </button>
         </div>
@@ -281,7 +281,7 @@ function PasswordCard() {
         )}
 
         <div className="settings-actions">
-          <button type="submit" className="signup-submit signup-submit--inline" disabled={saving}>
+          <button type="submit" className="dash-link-btn" disabled={saving}>
             {saving ? 'Updating\u2026' : 'Update password'}
           </button>
         </div>
@@ -296,14 +296,14 @@ function AccountCard({ member }) {
       <div className="dash-card__head">
         <h2 className="dash-card__title">Account</h2>
       </div>
-      <dl className="settings-readonly">
-        <div>
+      <dl className="plan-summary-list settings-readonly-list">
+        <div className="plan-summary-list__row">
           <dt>Email</dt>
-          <dd className="mono">{member?.email || '—'}</dd>
+          <dd>{member?.email || '—'}</dd>
         </div>
-        <div>
+        <div className="plan-summary-list__row">
           <dt>Account name</dt>
-          <dd className="mono">{member?.accountName || '—'}</dd>
+          <dd>{member?.accountName || '—'}</dd>
         </div>
       </dl>
       <p className="settings-note">

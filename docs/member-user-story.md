@@ -1,10 +1,10 @@
 # Eijent member journey (user story)
 
-Full path for an Eijent customer: signup, approval, plan + wallet, login, dashboard, and how the product app uses Core.
+Full path for an Eijent customer: signup, approval, plan selection, wallet, login, dashboard, and how the product app uses Core.
 
 Follow the same journey in:
 
-- **Eijent landing site** (signup, login, dashboard, credit ledger)
+- **Eijent landing site** (signup, login, choose plan, dashboard, credit ledger)
 - **BPS Core admin** (Eijent Members, Products, Pricing Plans, Service Plans, Coupons, Credit Packages, Subscriptions, Audit / Sync logs)
 
 Canonical architecture: `bps-core/docs/architecture/plans-credits-coupons.md`.  
@@ -17,10 +17,11 @@ API details: [apis.md](./apis.md).
 1. Person signs up on the landing site (company + contact only; **no plan picker**).
 2. Account is **Pending**. They cannot log in. No subscription yet.
 3. Admin opens **Eijent Members → Pending approvals** (or **Approve member** on the edit screen).
-4. Admin picks a **Pricing Plan** and approves.
-5. Core activates the member, creates a **Subscription**, snapshots the **credit wallet** from the Pricing Plan, emails “account is ready”, and writes audit + a **pending agent provision** sync log (Task 11: real agent sync still to wire).
-6. Member logs in and sees dashboard (plan, modules, limits, credits, low-credit banner when relevant).
-7. Product app uses Core entitlements / credits / coupons APIs to enforce access and spend.
+4. Admin **approves only** (no plan assignment).
+5. Core activates the member, emails “account is ready”. No subscription yet.
+6. Member logs in → **Choose a plan** screen.
+7. Free / $0 demo plan: selecting it creates a **Subscription** and unlocks the dashboard. Paid plans show **Coming soon** until checkout is live.
+8. Product app uses Core entitlements / credits / coupons APIs to enforce access and spend.
 
 ---
 
@@ -30,7 +31,7 @@ API details: [apis.md](./apis.md).
 | ------- | ------------- | ------- |
 | **Member** | Eijent Members | Person / company account |
 | **Product** | Products (type plan) | Marketing + billing config for landing |
-| **Pricing Plan** | Pricing Plans | What admin assigns: credits, packages, overage costs, optional limit overrides |
+| **Pricing Plan** | Pricing Plans | Catalog the member picks after approve (credits, packages, overage, limits) |
 | **Service Plan** | Service Plans | Modules, caps, Allow extras |
 | **Subscription** | Subscriptions | Member ↔ plan link + live wallet + usage counts |
 | **Credit packages** | Credit Packages | Sellable top-ups (attached on Pricing Plan) |
@@ -38,7 +39,7 @@ API details: [apis.md](./apis.md).
 | **Credits ledger** | Credit Transactions | Grants, deducts, resets (optional workspace) |
 | **Audit / Sync logs** | System group | Control-plane and integration events |
 
-**Important:** subscription is created at **approve**, not at signup.
+**Important:** subscription is created when the **member selects a plan** after login, not at signup or admin approve.
 
 Wallet policy (allocation, unused-credits expire/rollover, low-credit threshold) comes from the **Pricing Plan**, not from editing the Service Plan.
 
@@ -49,7 +50,7 @@ Wallet policy (allocation, unused-credits expire/rollover, low-credit threshold)
 | Status | Can log in? | Meaning |
 | ------ | ----------- | ------- |
 | **Pending** | No | Waiting for admin approval |
-| **Active** | Yes | Approved and ready |
+| **Active** | Yes | Approved; may still need to choose a plan |
 | **Suspended** | No | Blocked by admin |
 
 No separate Reject action today; leaving someone Pending keeps them locked out. A Reject → Suspended flow can be added later if needed.
@@ -88,44 +89,45 @@ Document header also has **Approve member** for Pending records.
 ### Permissions
 
 - Members **read** + **approve**
-- Subscriptions **create** for that tenant
 
 ### Approving
 
 1. Click Approve
-2. Choose Pricing Plan
-3. Confirm
+2. Confirm (no plan picker)
 
 ### What Core does
 
 1. Member → **Active**
-2. Create **Subscription** (offline / paid style so access works without checkout)
-3. Snapshot **credit wallet** from Pricing Plan (balance, allocation, reset, unused policy, low-credit threshold)
-4. Send account-ready email
-5. Audit: `member.approved`
-6. Sync log: `member.provision.start` (pending). Agent DB provision is **not** completed until Task 11; member stays Active even if agent sync later fails
+2. Send account-ready email (no plan line; they choose after sign-in)
+3. Audit: `member.approved`
 
-If subscription create fails, member rolls back to Pending.  
 If email fails, member stays Active.
 
 ### Payment today
 
-- No card at signup
-- Approval = admin-activated / offline paid
-- Self-serve Stripe (or similar) is a separate product decision
+- No card at signup or approve
+- Member picks a plan after login
+- Free / $0 plans self-serve; paid plans show Coming soon until Stripe (or similar)
 - **Subscriptions in Core** remain source of truth for plan + access
 
 ---
 
-## Step 4: Member logs in
+## Step 4: Member logs in and chooses a plan
 
-After approval (and email), same email/password → member dashboard.
+After approval (and email), same email/password → `/dashboard/choose-plan` if they have no subscription yet.
+
+- Lists active Pricing Plans for the tenant
+- **Free / $0**: `POST /api/plans/select` → Core `POST /api/members/:id/select-plan` creates Subscription (wallet snapshot via existing hooks), then dashboard
+- **Paid**: Coming soon popup; no subscription created
+- Audit on success: `member.plan.assigned`; sync log: `member.provision.start` (Task 11 still deferred)
+
+Keep at least one active **$0 / free** Pricing Plan in Core for demo and QA.
 
 ---
 
 ## Step 5: Landing dashboard
 
-Member shell with Overview / Plan / Credits / Team:
+Once a subscription exists, member shell with Overview / Plan / Credits / Team / Billing / Settings:
 
 - **Overview** – Available credits, plan glance, key limits, team size; low-credit banner when `isLowOnCredits`
 - **Plan** – subscription summary, module chips, limits (`used / max` or Not synced)

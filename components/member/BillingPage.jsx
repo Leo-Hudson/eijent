@@ -6,7 +6,6 @@ import MemberErrorState from '@/components/member/MemberErrorState';
 import MemberSoftActions from '@/components/member/MemberSoftActions';
 import { useMemberDashboard } from '@/hooks/useMemberDashboard';
 import {
-  BUY_CREDITS_MAILTO,
   displayName,
   formatDate,
   formatMoney,
@@ -14,7 +13,6 @@ import {
   formatPlanPrice,
   prettyCycle,
   prettyStatus,
-  SALES_MAILTO,
   STATUS_TONE,
 } from '@/lib/memberDisplay';
 
@@ -52,6 +50,20 @@ export default function BillingPage() {
   const priceLabel = primarySub ? formatPlanPrice(primarySub) : null;
   const contactName = displayName(member, '—');
 
+  const summaryRows = primarySub
+    ? [
+        { label: 'Plan', value: primarySub.planName || 'Plan' },
+        prettyCycle(primarySub.billingCycle)
+          ? { label: 'Cycle', value: prettyCycle(primarySub.billingCycle) }
+          : null,
+        formatNextInvoice(primarySub)
+          ? { label: 'Next bill', value: formatNextInvoice(primarySub) }
+          : null,
+        priceLabel ? { label: 'Price', value: priceLabel } : null,
+        { label: 'Payment', value: prettyStatus(primarySub.paymentStatus) },
+      ].filter(Boolean)
+    : [];
+
   return (
     <MemberShell active="billing" member={member}>
       <div className="dash">
@@ -69,46 +81,58 @@ export default function BillingPage() {
 
         <MemberSoftActions showBilling={false} showCredits />
 
-        <section className="dash-card">
-          <div className="dash-card__head">
-            <h2 className="dash-card__title">Billing summary</h2>
-            {primarySub?.status ? (
-              <span className={`dash-badge ${tone}`}>{prettyStatus(primarySub.status)}</span>
-            ) : null}
-          </div>
-          {!primarySub ? (
-            <p className="dash-empty">No active subscription found.</p>
-          ) : (
-            <dl className="dash-sub__facts">
-              <div className="dash-sub__fact">
-                <dt>Plan</dt>
-                <dd>{primarySub.planName || 'Plan'}</dd>
+        <div className="billing-top-grid">
+          <section className="dash-card">
+            <div className="dash-card__head">
+              <h2 className="dash-card__title">Billing summary</h2>
+              {primarySub?.status ? (
+                <span className={`dash-badge ${tone}`}>{prettyStatus(primarySub.status)}</span>
+              ) : null}
+            </div>
+            {!primarySub ? (
+              <p className="dash-empty">No active subscription found.</p>
+            ) : (
+              <dl className="plan-summary-list">
+                {summaryRows.map((row) => (
+                  <div key={row.label} className="plan-summary-list__row">
+                    <dt>{row.label}</dt>
+                    <dd>{row.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+            <div className="dash-card__foot">
+              <a href="/dashboard/plan" className="dash-link-btn dash-link-btn--ghost">
+                View plan details
+              </a>
+            </div>
+          </section>
+
+          <section className="dash-card">
+            <div className="dash-card__head">
+              <h2 className="dash-card__title">Billing contact</h2>
+            </div>
+            <dl className="plan-summary-list">
+              <div className="plan-summary-list__row">
+                <dt>Name</dt>
+                <dd>{contactName}</dd>
               </div>
-              {prettyCycle(primarySub.billingCycle) ? (
-                <div className="dash-sub__fact">
-                  <dt>Cycle</dt>
-                  <dd>{prettyCycle(primarySub.billingCycle)}</dd>
-                </div>
-              ) : null}
-              {formatNextInvoice(primarySub) ? (
-                <div className="dash-sub__fact">
-                  <dt>Next bill</dt>
-                  <dd>{formatNextInvoice(primarySub)}</dd>
-                </div>
-              ) : null}
-              {priceLabel ? (
-                <div className="dash-sub__fact">
-                  <dt>Price</dt>
-                  <dd>{priceLabel}</dd>
-                </div>
-              ) : null}
-              <div className="dash-sub__fact">
-                <dt>Payment</dt>
-                <dd>{prettyStatus(primarySub.paymentStatus)}</dd>
+              <div className="plan-summary-list__row">
+                <dt>Email</dt>
+                <dd>{member?.email || '—'}</dd>
+              </div>
+              <div className="plan-summary-list__row">
+                <dt>Phone</dt>
+                <dd>{member?.phone || '—'}</dd>
               </div>
             </dl>
-          )}
-        </section>
+            <div className="dash-card__foot">
+              <a href="/dashboard/settings" className="dash-link-btn dash-link-btn--ghost">
+                Update in Settings
+              </a>
+            </div>
+          </section>
+        </div>
 
         <section className="dash-card dash-card--muted">
           <div className="dash-card__head">
@@ -121,26 +145,6 @@ export default function BillingPage() {
           </p>
         </section>
 
-        <section className="dash-card">
-          <div className="dash-card__head">
-            <h2 className="dash-card__title">Billing contact</h2>
-          </div>
-          <dl className="dash-sub__facts">
-            <div className="dash-sub__fact">
-              <dt>Name</dt>
-              <dd>{contactName}</dd>
-            </div>
-            <div className="dash-sub__fact">
-              <dt>Email</dt>
-              <dd>{member?.email || '—'}</dd>
-            </div>
-            <div className="dash-sub__fact">
-              <dt>Phone</dt>
-              <dd>{member?.phone || '—'}</dd>
-            </div>
-          </dl>
-        </section>
-
         <section className="dash-card dash-card--muted">
           <div className="dash-card__head">
             <h2 className="dash-card__title">Invoice history</h2>
@@ -149,7 +153,7 @@ export default function BillingPage() {
           <p className="dash-empty">
             Invoices will appear here when payments are enabled.
           </p>
-          <div className="member-soft-actions member-soft-actions--compact" style={{ marginTop: 12 }}>
+          <div className="dash-card__foot">
             <button type="button" className="dash-link-btn dash-link-btn--ghost" disabled title="Coming soon">
               Download Invoice
             </button>
@@ -186,24 +190,6 @@ export default function BillingPage() {
             </ul>
           </section>
         ) : null}
-
-        <section className="dash-card">
-          <div className="dash-card__head">
-            <h2 className="dash-card__title">Actions</h2>
-          </div>
-          <div className="member-soft-actions">
-            <a href={SALES_MAILTO} className="dash-link-btn">
-              Contact Sales
-            </a>
-            <a href={BUY_CREDITS_MAILTO} className="dash-link-btn dash-link-btn--ghost">
-              Buy Credits
-              <span className="dash-badge is-soon">Coming soon</span>
-            </a>
-          </div>
-          <p className="dash-hint" style={{ marginTop: 12 }}>
-            Estimated cost at checkout and self-serve credit packs are coming soon.
-          </p>
-        </section>
       </div>
     </MemberShell>
   );

@@ -6,6 +6,7 @@ import { BUY_CREDITS_MAILTO, SALES_MAILTO } from '@/lib/memberDisplay';
 /**
  * Soft global actions (no real checkout yet).
  * Buy Credits / Contact Sales are mailto; Billing and Credits are in-app links.
+ * Button hierarchy matches the web app: primary blue + outline secondary.
  */
 export default function MemberSoftActions({
   showBilling = true,
@@ -17,7 +18,7 @@ export default function MemberSoftActions({
   return (
     <div className={`member-soft-actions${compact ? ' member-soft-actions--compact' : ''}`}>
       {showBuyCredits ? (
-        <a href={BUY_CREDITS_MAILTO} className="dash-link-btn dash-link-btn--ghost">
+        <a href={BUY_CREDITS_MAILTO} className="dash-link-btn">
           Buy Credits
           <span className="dash-badge is-soon">Coming soon</span>
         </a>

@@ -149,7 +149,7 @@ export default function TeamPage() {
         <section className="dash-card team-owner">
           <div className="team-owner__row">
             <div className="team-owner__who">
-              <span className="dash-account__avatar" aria-hidden="true">
+              <span className="dash-avatar" aria-hidden="true">
                 {(ownerName[0] || '?').toUpperCase()}
               </span>
               <div>
@@ -157,7 +157,7 @@ export default function TeamPage() {
                   {ownerName}
                   <span className="dash-usage__tag">Owner</span>
                 </p>
-                <p className="team-owner__email mono">{member?.email || '—'}</p>
+                <p className="team-owner__email">{member?.email || '—'}</p>
               </div>
             </div>
             <span className={`dash-badge ${ownerTone}`}>{member?.status || 'Active'}</span>
@@ -265,7 +265,7 @@ export default function TeamPage() {
                         <td>
                           <a
                             href={creditsHref(row.userKey)}
-                            className="team-table__link"
+                            className="dash-link-btn dash-link-btn--ghost dash-link-btn--sm"
                           >
                             View in Credits
                           </a>
@@ -295,7 +295,10 @@ export default function TeamPage() {
                     </div>
                     <div className="team-card__foot">
                       <span>{row.deducted.toLocaleString()} credits used</span>
-                      <a href={creditsHref(row.userKey)} className="team-table__link">
+                      <a
+                        href={creditsHref(row.userKey)}
+                        className="dash-link-btn dash-link-btn--ghost dash-link-btn--sm"
+                      >
                         View in Credits
                       </a>
                     </div>

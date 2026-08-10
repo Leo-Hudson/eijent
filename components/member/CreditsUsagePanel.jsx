@@ -319,36 +319,41 @@ export default function CreditsUsagePanel({ data }) {
 
   return (
     <div className="credits-usage">
-      <div className="dash-summary" aria-label="Credit summary">
-        <div className="dash-summary__item">
-          <span className="dash-summary__label">Current balance</span>
-          <span className="dash-summary__value">
+      <div className="app-metric-row" aria-label="Credit summary">
+        <div className="app-metric-card">
+          <span className="app-metric-card__label">Current balance</span>
+          <span className="app-metric-card__value">
             {balance != null ? balance.toLocaleString() : '—'}
           </span>
         </div>
-        <div className="dash-summary__item">
-          <span className="dash-summary__label">Plan grant</span>
-          <span className="dash-summary__value">
+        <div className="app-metric-card">
+          <span className="app-metric-card__label">Monthly allocation</span>
+          <span className="app-metric-card__value">
             {allocation != null ? allocation.toLocaleString() : '—'}
           </span>
           {prettyCycle(resetCycle) ? (
-            <span className="dash-summary__hint">{prettyCycle(resetCycle)}</span>
+            <span className="app-metric-card__hint">{prettyCycle(resetCycle)}</span>
           ) : null}
         </div>
-        <div className="dash-summary__item">
-          <span className="dash-summary__label">Used this cycle</span>
-          <span className="dash-summary__value">
+        <div className="app-metric-card">
+          <span className="app-metric-card__label">Credits used this cycle</span>
+          <span className="app-metric-card__value">
             {totalDeducted != null ? totalDeducted.toLocaleString() : '—'}
           </span>
           {nextResetAt ? (
-            <span className="dash-summary__hint">Resets {formatDate(nextResetAt)}</span>
+            <span className="app-metric-card__hint">Resets {formatDate(nextResetAt)}</span>
           ) : null}
         </div>
-        <div className="dash-summary__item">
-          <span className="dash-summary__label">Used in range</span>
-          <span className="dash-summary__value">
+        <div className="app-metric-card">
+          <span className="app-metric-card__label">Used in range</span>
+          <span className="app-metric-card__value">
             {agg.loading ? '…' : agg.usedInRange.toLocaleString()}
           </span>
+          {range.from && range.to ? (
+            <span className="app-metric-card__hint">
+              {range.from} → {range.to}
+            </span>
+          ) : null}
         </div>
       </div>
 

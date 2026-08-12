@@ -43,6 +43,22 @@ Send **one** of:
 - `memberId` (often easiest), or
 - `subscriptionId`
 
+### Rate limits (credits / entitlements)
+
+Core applies in-process limits on credits and entitlements routes:
+
+| Scope | Default |
+| ----- | ------- |
+| Per API key (or admin user) | 600 requests / 60s |
+| Per subscription | 180 requests / 60s |
+
+When exceeded, Core returns **429** with:
+
+- JSON `code: "rate_limited"`
+- Header `Retry-After` (seconds)
+
+Back off and retry after that delay. Do not tight-loop retries.
+
 ---
 
 ## 1. GET Entitlements

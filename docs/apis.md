@@ -47,10 +47,12 @@ Send **one** of:
 
 Core applies in-process limits on credits and entitlements routes:
 
-| Scope | Default |
-| ----- | ------- |
-| Per API key (or admin user) | 600 requests / 60s |
-| Per subscription | 180 requests / 60s |
+| Scope | Limit |
+| ----- | ----- |
+| Per API key (or admin user) | 6000 requests / 60s (all credits + entitlements routes) |
+| Per subscription (writes only) | 600 requests / 60s (`deduct`, `grant`, package `purchase`) |
+
+Dashboard reads (balance, usage, ledger, entitlements, check) only count against the API key / user bucket, not a per-subscription read cap.
 
 When exceeded, Core returns **429** with:
 

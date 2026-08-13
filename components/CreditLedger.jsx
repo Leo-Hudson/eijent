@@ -82,12 +82,6 @@ const summarizeDocs = (docs) => {
   };
 };
 
-const csvEscape = (value) => {
-  const s = value == null ? '' : String(value);
-  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
-};
-
 /** Local calendar day → ISO bounds without UTC midnight skew. */
 const dayStartIso = (yyyyMmDd) => {
   const [y, m, d] = yyyyMmDd.split('-').map(Number);
@@ -207,7 +201,29 @@ const buildLedgerParams = (applied, page, limit = 8) => {
   return params;
 };
 
-const CreditLedger = ({ embedded = false }) => {
+const buildUsersFromProps = (member, subAccounts) => {
+  if (!member && !subAccounts?.length) return { ownerId: null, users: [] };
+  const ownerName =
+    [member?.firstName, member?.lastName].filter(Boolean).join(' ').trim() ||
+    member?.email ||
+    'You (owner)';
+  return {
+    ownerId: member?.id ? String(member.id) : null,
+    users: [
+      { key: 'owner', label: `${ownerName} (owner)` },
+      ...(subAccounts || []).map((a) => ({
+        key: String(a.id),
+        label: `${a.firstName || ''} ${a.lastName || ''}`.trim() || a.email || 'Sub-account',
+      })),
+    ],
+  };
+};
+
+const CreditLedger = ({
+  embedded = false,
+  member: memberProp = null,
+  subAccounts: subAccountsProp = null,
+}) => {
   const readInitialFilters = () => {
     if (typeof window === 'undefined') return INITIAL_FILTERS;
     const params = new URLSearchParams(window.location.search);
@@ -216,13 +232,20 @@ const CreditLedger = ({ embedded = false }) => {
     return { ...INITIAL_FILTERS, userKey: String(user) };
   };
 
+  const seeded = React.useMemo(
+    () => buildUsersFromProps(memberProp, subAccountsProp),
+    [memberProp, subAccountsProp],
+  );
+  const hasSeededUsers = Boolean(memberProp || (subAccountsProp && subAccountsProp.length));
+
   const [filters, setFilters] = React.useState(readInitialFilters);
   const [applied, setApplied] = React.useState(readInitialFilters);
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(8);
   const [expandedId, setExpandedId] = React.useState(null);
-  const [users, setUsers] = React.useState([]);
-  const [ownerId, setOwnerId] = React.useState(null);
+  const [users, setUsers] = React.useState(() => seeded.users);
+  const [ownerId, setOwnerId] = React.useState(() => seeded.ownerId);
+  const [exporting, setExporting] = React.useState(false);
   const [showMoreFilters, setShowMoreFilters] = React.useState(() => {
     if (typeof window === 'undefined') return false;
     const params = new URLSearchParams(window.location.search);
@@ -241,6 +264,13 @@ const CreditLedger = ({ embedded = false }) => {
   });
 
   React.useEffect(() => {
+    if (hasSeededUsers) {
+      setOwnerId(seeded.ownerId);
+      setUsers(seeded.users);
+      return undefined;
+    }
+
+    // Standalone / legacy: only fetch dashboard when parent did not pass team data.
     let active = true;
     (async () => {
       try {
@@ -251,21 +281,9 @@ const CreditLedger = ({ embedded = false }) => {
         }
         const data = await res.json().catch(() => ({}));
         if (!active || !res.ok) return;
-        const member = data.member;
-        if (member?.id) setOwnerId(String(member.id));
-        const ownerName =
-          [member?.firstName, member?.lastName].filter(Boolean).join(' ').trim() ||
-          member?.email ||
-          'You (owner)';
-        const list = [
-          { key: 'owner', label: `${ownerName} (owner)` },
-          ...(data.subAccounts || []).map((a) => ({
-            key: String(a.id),
-            label:
-              `${a.firstName || ''} ${a.lastName || ''}`.trim() || a.email || 'Sub-account',
-          })),
-        ];
-        setUsers(list);
+        const next = buildUsersFromProps(data.member, data.subAccounts);
+        setOwnerId(next.ownerId);
+        setUsers(next.users);
       } catch {
         // filter users optional
       }
@@ -273,7 +291,7 @@ const CreditLedger = ({ embedded = false }) => {
     return () => {
       active = false;
     };
-  }, []);
+  }, [hasSeededUsers, seeded]);
 
   React.useEffect(() => {
     const controller = new AbortController();
@@ -294,35 +312,19 @@ const CreditLedger = ({ embedded = false }) => {
         if (!res.ok) throw new Error(data.error || 'Unable to load credit ledger.');
         if (controller.signal.aborted) return;
 
+        // Prefer Core SQL summary; fall back to current page only (no multi-page fan-out).
         let summary =
           data.summary && typeof data.summary === 'object' ? data.summary : null;
-
         if (
           (!summary ||
             (summary.transactionCount === 0 &&
               (data.totalDocs || 0) > 0 &&
               Array.isArray(data.docs) &&
               data.docs.length > 0)) &&
-          (data.totalDocs || 0) > 0
+          Array.isArray(data.docs) &&
+          data.docs.length > 0
         ) {
-          const all = [];
-          let summaryPage = 1;
-          let summaryTotalPages = 1;
-          const summaryLimit = 100;
-          const maxSummaryPages = 20;
-          while (summaryPage <= summaryTotalPages && summaryPage <= maxSummaryPages) {
-            const summaryParams = buildLedgerParams(applied, summaryPage, summaryLimit);
-            const moreRes = await fetch(`/api/credits/ledger?${summaryParams}`, {
-              cache: 'no-store',
-              signal: controller.signal,
-            });
-            const moreData = await moreRes.json().catch(() => ({}));
-            if (!moreRes.ok) break;
-            all.push(...(moreData.docs || []));
-            summaryTotalPages = moreData.totalPages || 1;
-            summaryPage += 1;
-          }
-          summary = summarizeDocs(all);
+          summary = summarizeDocs(data.docs);
         }
 
         setState({
@@ -429,66 +431,33 @@ const CreditLedger = ({ embedded = false }) => {
   };
 
   const exportCsv = async () => {
-    const all = [];
-    let p = 1;
-    let totalPages = 1;
-    const maxPages = 100;
-    while (p <= totalPages && p <= maxPages) {
-      const params = buildLedgerParams(applied, p);
-      const res = await fetch(`/api/credits/ledger?${params}`, { cache: 'no-store' });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Export failed.');
-      all.push(...(data.docs || []));
-      totalPages = data.totalPages || 1;
-      p += 1;
+    setExporting(true);
+    try {
+      // One browser request; server paginates Core and returns the CSV.
+      const params = buildLedgerParams(applied, 1, 100);
+      params.delete('page');
+      params.delete('limit');
+      const res = await fetch(`/api/credits/ledger/export?${params}`, {
+        cache: 'no-store',
+      });
+      if (res.status === 401) {
+        window.location.assign('/login?next=/dashboard/credits');
+        return;
+      }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Export failed.');
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `eijent-credit-ledger-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
     }
-
-    const header = [
-      'Date',
-      'Transaction Type',
-      'Workspace',
-      'Service',
-      'Sub-account',
-      'Sub-account Email',
-      'Credits',
-      'Running Balance',
-      'Reference',
-      'Description',
-    ];
-    const lines = [header.map(csvEscape).join(',')];
-    for (const row of all) {
-      const when = formatDateTime(row.createdAt);
-      const sub = resolveSubAccount(row, ownerId);
-      const subLabel = sub
-        ? sub.isOwner
-          ? `${sub.name} (owner)`
-          : sub.name
-        : '';
-      lines.push(
-        [
-          when?.full || '',
-          ledgerTypeLabel(row),
-          resolveWorkspaceLabel(row) || '',
-          row.service || '',
-          subLabel,
-          sub?.email || '',
-          formatCredits(row.amount),
-          typeof row.balanceAfter === 'number' ? row.balanceAfter : '',
-          row.id || '',
-          row.description || '',
-        ]
-          .map(csvEscape)
-          .join(','),
-      );
-    }
-
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `eijent-credit-ledger-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   const extrasAboveGrant =
@@ -609,9 +578,9 @@ const CreditLedger = ({ embedded = false }) => {
               type="button"
               className="dash-link-btn dash-link-btn--ghost"
               onClick={() => exportCsv().catch((err) => alert(err.message || 'Export failed'))}
-              disabled={state.loading || state.totalDocs === 0}
+              disabled={state.loading || exporting || state.totalDocs === 0}
             >
-              Export CSV
+              {exporting ? 'Exporting…' : 'Export CSV'}
             </button>
           </div>
         </header>
@@ -627,9 +596,9 @@ const CreditLedger = ({ embedded = false }) => {
             type="button"
             className="dash-link-btn dash-link-btn--ghost"
             onClick={() => exportCsv().catch((err) => alert(err.message || 'Export failed'))}
-            disabled={state.loading || state.totalDocs === 0}
+            disabled={state.loading || exporting || state.totalDocs === 0}
           >
-            Export CSV
+            {exporting ? 'Exporting…' : 'Export CSV'}
           </button>
         </div>
       )}

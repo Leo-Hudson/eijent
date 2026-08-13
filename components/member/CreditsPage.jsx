@@ -91,7 +91,11 @@ export default function CreditsPage() {
         {tab === 'usage' ? (
           <CreditsUsagePanel data={data} />
         ) : (
-          <CreditLedger embedded />
+          <CreditLedger
+            embedded
+            member={data?.member || null}
+            subAccounts={data?.subAccounts || []}
+          />
         )}
       </div>
     </MemberShell>

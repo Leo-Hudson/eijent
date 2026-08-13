@@ -35,27 +35,6 @@ const dayEndIso = (yyyyMmDd) => {
   return new Date(y, m - 1, d, 23, 59, 59, 999).toISOString();
 };
 
-const resolveWorkspaceLabel = (row) => {
-  if (row?.workspace && typeof row.workspace === 'object') {
-    return row.workspace.name || row.workspace.id || null;
-  }
-  return row?.workspaceName || row?.workspaceId || null;
-};
-
-const resolveUserLabel = (row, ownerId, ownerLabel) => {
-  if (row?.attributedToOwner === true) return ownerLabel || 'Owner';
-  if (row?.subAccount && typeof row.subAccount === 'object') {
-    return row.subAccount.name || row.subAccount.email || 'Sub-account';
-  }
-  if (row?.user?.name || row?.user?.email) {
-    if (ownerId && row.user?.id != null && String(row.user.id) === String(ownerId)) {
-      return ownerLabel || 'Owner';
-    }
-    return row.user.name || row.user.email;
-  }
-  return 'Unknown';
-};
-
 const csvEscape = (value) => {
   const s = value == null ? '' : String(value);
   if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
@@ -99,7 +78,6 @@ export default function CreditsUsagePanel({ data }) {
   const { balance, allocation, totalDeducted, nextResetAt, resetCycle } = deriveWallet(data);
   const credits = data?.credits || null;
   const member = data?.member;
-  const ownerId = member?.id ? String(member.id) : null;
   const ownerLabel =
     [member?.firstName, member?.lastName].filter(Boolean).join(' ').trim() ||
     member?.email ||
@@ -179,70 +157,28 @@ export default function CreditsUsagePanel({ data }) {
     (async () => {
       setAgg((prev) => ({ ...prev, loading: true, error: '' }));
       try {
+        // One server-side aggregate call (Core SQL), not a paginated ledger fan-out.
         const params = new URLSearchParams();
         params.set('from', dayStartIso(range.from));
         params.set('to', dayEndIso(range.to));
-        params.set('type', 'deduct');
-        params.set('direction', 'debit');
-        params.set('sort', 'newest');
-        params.set('limit', '100');
-
-        const all = [];
-        let page = 1;
-        let totalPages = 1;
-        const maxPages = 20;
-        while (page <= totalPages && page <= maxPages) {
-          params.set('page', String(page));
-          const res = await fetch(`/api/credits/ledger?${params}`, {
-            cache: 'no-store',
-            signal: controller.signal,
-          });
-          if (res.status === 401) {
-            window.location.assign('/login?next=/dashboard/credits');
-            return;
-          }
-          const json = await res.json().catch(() => ({}));
-          if (!res.ok) throw new Error(json.error || 'Unable to load usage.');
-          all.push(...(json.docs || []));
-          totalPages = json.totalPages || 1;
-          page += 1;
+        const res = await fetch(`/api/credits/usage-breakdown?${params}`, {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        if (res.status === 401) {
+          window.location.assign('/login?next=/dashboard/credits');
+          return;
         }
-
-        const byUserMap = new Map();
-        const byServiceMap = new Map();
-        const byWorkspaceMap = new Map();
-        let usedInRange = 0;
-
-        for (const row of all) {
-          const amount = Math.abs(Number(row.amount) || 0);
-          if (amount <= 0) continue;
-          usedInRange += amount;
-
-          const user = resolveUserLabel(row, ownerId, ownerLabel);
-          byUserMap.set(user, (byUserMap.get(user) || 0) + amount);
-
-          const serviceKey = row.featureKey || row.service || 'other';
-          const serviceLabel = prettyServiceLabel(serviceKey);
-          byServiceMap.set(serviceLabel, (byServiceMap.get(serviceLabel) || 0) + amount);
-
-          const ws = resolveWorkspaceLabel(row);
-          if (ws) {
-            byWorkspaceMap.set(ws, (byWorkspaceMap.get(ws) || 0) + amount);
-          }
-        }
-
-        const toSorted = (map) =>
-          [...map.entries()]
-            .map(([label, deducted]) => ({ label, deducted }))
-            .sort((a, b) => b.deducted - a.deducted);
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json.error || 'Unable to load usage.');
 
         setAgg({
           loading: false,
           error: '',
-          byUser: toSorted(byUserMap),
-          byService: toSorted(byServiceMap),
-          byWorkspace: toSorted(byWorkspaceMap),
-          usedInRange,
+          byUser: Array.isArray(json.byUser) ? json.byUser : [],
+          byService: Array.isArray(json.byService) ? json.byService : [],
+          byWorkspace: Array.isArray(json.byWorkspace) ? json.byWorkspace : [],
+          usedInRange: Number(json.usedInRange) || 0,
         });
       } catch (err) {
         if (err?.name === 'AbortError') return;
@@ -258,7 +194,7 @@ export default function CreditsUsagePanel({ data }) {
     })();
 
     return () => controller.abort();
-  }, [range.from, range.to, preset, ownerId, ownerLabel]);
+  }, [range.from, range.to, preset]);
 
   const fallbackByUser = React.useMemo(() => {
     if (agg.byUser.length || agg.loading) return [];
@@ -503,15 +439,18 @@ export default function CreditsUsagePanel({ data }) {
           loading={agg.loading}
           rows={byUser}
           linkForRow={(row) => {
+            if (row.subAccountId) {
+              return `/dashboard/credits?tab=ledger&user=${encodeURIComponent(row.subAccountId)}`;
+            }
+            if (row.kind === 'owner' || row.label?.includes('(owner)') || row.label === ownerLabel) {
+              return '/dashboard/credits?tab=ledger&user=owner';
+            }
             const sub = (data?.subAccounts || []).find(
               (a) =>
                 `${a.firstName || ''} ${a.lastName || ''}`.trim() === row.label ||
                 a.email === row.label,
             );
             if (sub?.id) return `/dashboard/credits?tab=ledger&user=${encodeURIComponent(sub.id)}`;
-            if (row.label.includes('(owner)') || row.label === ownerLabel) {
-              return '/dashboard/credits?tab=ledger&user=owner';
-            }
             return null;
           }}
         />

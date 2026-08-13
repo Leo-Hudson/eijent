@@ -43,6 +43,24 @@ Send **one** of:
 - `memberId` (often easiest), or
 - `subscriptionId`
 
+### Rate limits (credits / entitlements)
+
+Core applies in-process limits on credits and entitlements routes:
+
+| Scope | Limit |
+| ----- | ----- |
+| Per API key (or admin user) | 12000 requests / 60s (all credits + entitlements routes) |
+| Per subscription (writes only) | 600 requests / 60s (`deduct`, `grant`, package `purchase`) |
+
+Dashboard reads (balance, usage, ledger, entitlements, check) only count against the API key / user bucket, not a per-subscription read cap.
+
+When exceeded, Core returns **429** with:
+
+- JSON `code: "rate_limited"`
+- Header `Retry-After` (seconds)
+
+Back off and retry after that delay. Do not tight-loop retries.
+
 ---
 
 ## 1. GET Entitlements
